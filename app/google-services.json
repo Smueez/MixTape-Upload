@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "140137196641",
+    "firebase_url": "https://mixtapeupload-2b7cb.firebaseio.com",
+    "project_id": "mixtapeupload-2b7cb",
+    "storage_bucket": "mixtapeupload-2b7cb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140137196641:android:d405eb75af167f10",
+        "android_client_info": {
+          "package_name": "com.example.user.mixtapeupload"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "140137196641-g341m1gohij64ef8i42kq0s31oeq4cli.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.user.mixtapeupload",
+            "certificate_hash": "88a506d80210414ce7ed8b6b1d7bfa882721851d"
+          }
+        },
+        {
+          "client_id": "140137196641-vohcg3if2h4gegj4sbj8fd441oa4csb5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDegSnk_DHQF4rs1dT394EEQtF7ICkfowc"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "140137196641-vohcg3if2h4gegj4sbj8fd441oa4csb5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

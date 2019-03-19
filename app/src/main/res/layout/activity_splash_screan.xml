@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".SplashScrean"
+    android:orientation="vertical"
+    android:background="@drawable/backhground1">
+
+    <LinearLayout
+        android:id="@+id/imagelayout"
+        android:layout_width="match_parent"
+        android:layout_height="468dp">
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="323dp"
+            android:layout_height="468dp"
+            android:layout_weight="1"
+            app:srcCompat="@drawable/welcomesrecean" />
+    </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/textlayout"
+        android:layout_width="match_parent"
+        android:layout_height="92dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:layout_gravity="center"
+            android:fontFamily="cursive"
+            android:gravity="center"
+            android:text="MixTape Upload"
+            android:textColor="@android:color/holo_blue_light"
+            android:textSize="45dp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+</LinearLayout>
