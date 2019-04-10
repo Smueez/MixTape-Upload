@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity"
-    android:background="@drawable/backhground1">
+    android:background="@drawable/background">
 
     <TextView
         android:layout_width="match_parent"
@@ -101,5 +101,28 @@
         android:textColor="@android:color/holo_red_dark"
         android:textSize="18dp"
         android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/textView11"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="140dp"
+        android:text="or"
+        android:textColor="@android:color/background_light" />
+
+    <TextView
+        android:id="@+id/textView14"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="112dp"
+        android:onClick="skip"
+        android:text="skip login"
+        android:textColor="@android:color/holo_green_dark"
+        android:textSize="18dp"
+        android:textStyle="bold|italic" />
 
 </RelativeLayout>

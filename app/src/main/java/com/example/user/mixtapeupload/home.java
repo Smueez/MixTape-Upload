@@ -1,8 +1,16 @@
 package com.example.user.mixtapeupload;
 
+
+import android.content.Intent;
+
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+
+import android.support.annotation.NonNull;
+
+import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -13,8 +21,53 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import android.widget.AdapterView;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 public class home extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    String view_str;
+    Uri filePath;
+   StorageReference storageReference;
+    private static final int SELECT_AUDIO = 2;
+    DatabaseReference databaseReference,databaseReferencelist;
+    ListView listView;
+    List<Song> songList;
+    String TAG = "home content";
+    ImageView imageView;
+    String artist,name,song_name,musicLink;
+    Intent intent;
+    int view_count = 0;
+    FirebaseAuth auth;
+    ProgressBar progressBar;
+    FirebaseAuth mauth;
+    FirebaseUser muser;
+    Intent intent1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,14 +76,6 @@ public class home extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -40,15 +85,40 @@ public class home extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-    }
+        storageReference = FirebaseStorage.getInstance().getReference().child("songs");
+        databaseReference = FirebaseDatabase.getInstance().getReference().child("songs");
+        listView = findViewById(R.id.listview);
+        songList = new ArrayList<>();
+        databaseReferencelist = FirebaseDatabase.getInstance().getReference().child("songs");
+        intent = new Intent(this,Music_player.class);
+        auth = FirebaseAuth.getInstance();
+        progressBar = findViewById(R.id.progressBar);
+        mauth = FirebaseAuth.getInstance();
+        intent1 = new Intent(this,MainActivity.class);
 
+       // muser = mauth.getCurrentUser();
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == SELECT_AUDIO && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            filePath = data.getData();
+
+        }
+    }
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+            //super.onBackPressed();
+           /* Intent intent = new Intent(this,Music_player.class);
+            startActivity(intent);*/
+            Log.d(TAG, "onBackPressed: nothing");
+            if(mauth.getCurrentUser() == null){
+                startActivity(intent1);
+            }
         }
     }
 
@@ -68,7 +138,14 @@ public class home extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            return true;
+            if (mauth.getCurrentUser() != null) {
+                auth.signOut();
+                Intent intent = new Intent(this, MainActivity.class);
+                startActivity(intent);
+            }
+            else {
+                Toast.makeText(getApplicationContext(),"Login first!",Toast.LENGTH_LONG).show();
+            }
         }
 
         return super.onOptionsItemSelected(item);
@@ -82,20 +159,221 @@ public class home extends AppCompatActivity
 
         if (id == R.id.nav_camera) {
             // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+            if (auth.getCurrentUser() != null){
+                Intent intent = new Intent(this,profile.class);
+                startActivity(intent);
+            }
+            else {
+                Toast.makeText(getApplicationContext(),"Log in first!",Toast.LENGTH_LONG).show();
+            }
+        } else if (id == R.id.nav_gallery){
+            if (mauth.getCurrentUser() != null) {
+                auth.signOut();
+                Intent intent = new Intent(this, MainActivity.class);
+                startActivity(intent);
+            }
+            else {
+                Toast.makeText(getApplicationContext(),"Login first!",Toast.LENGTH_LONG).show();
+            }
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+
+    public int sCompare(String str1, String str2)
+    {
+        int res = str1.compareTo(str2);
+        if(res > 0) return 1;
+        else return -1;
+    }
+    public void whatsHot(View view)
+    {
+        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                listView.setAdapter(null);
+                songList.clear();
+                Log.d(TAG, "onDataChange driver: done!");
+                for (DataSnapshot ds : dataSnapshot.getChildren()){
+                    Song song = ds.getValue(Song.class);
+                    songList.add(song);
+                }
+                Collections.sort(songList, new Comparator<Song>() {
+                    public int compare(Song s1, Song s2) {
+                        int res = sCompare(s1.likes,s2.likes);
+                        if(res == 1) return -1;
+                        else return 1;
+                    }
+                });
+                Listadapter listadapter = new Listadapter(home.this,songList);
+                listView.setAdapter(listadapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    public void mostPlayed(View view)
+    {
+        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                listView.setAdapter(null);
+                songList.clear();
+                Log.d(TAG, "onDataChange driver: done!");
+                for (DataSnapshot ds : dataSnapshot.getChildren()){
+                    Song song = ds.getValue(Song.class);
+                    songList.add(song);
+                }
+                Collections.sort(songList, new Comparator<Song>() {
+                    public int compare(Song s1, Song s2) {
+                        int res = sCompare(s1.views,s2.views);
+                        if(res == 1) return -1;
+                        else return 1;
+                    }
+                });
+                Listadapter listadapter = new Listadapter(home.this,songList);
+                listView.setAdapter(listadapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    public void whatsNew(View view)
+    {
+        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                listView.setAdapter(null);
+                songList.clear();
+                Log.d(TAG, "onDataChange driver: done!");
+                for (DataSnapshot ds : dataSnapshot.getChildren()){
+                    Song song = ds.getValue(Song.class);
+                    songList.add(song);
+                }
+                Collections.sort(songList, new Comparator<Song>() {
+                    public int compare(Song s1, Song s2) {
+                        int res = sCompare(s1.sname,s2.sname);
+                        if(res == 1) return -1;
+                        else return 1;
+                    }
+                });
+                Listadapter listadapter = new Listadapter(home.this,songList);
+                listView.setAdapter(listadapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    public void all_songs(View view){
+        Intent intent = new Intent(this,home.class);
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                listView.setAdapter(null);
+                songList.clear();
+                Log.d(TAG, "onDataChange driver: done!");
+                for (DataSnapshot ds : dataSnapshot.getChildren()){
+                    Song song = ds.getValue(Song.class);
+                    songList.add(song);
+                }
+                Collections.sort(songList, new Comparator<Song>() {
+                    public int compare(Song s1, Song s2) {
+                        int res = sCompare(s1.sname,s2.sname);
+                        return res;
+                    }
+                });
+                Listadapter listadapter = new Listadapter(home.this,songList);
+                listView.setAdapter(listadapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // clicked item
+                song_name = songList.get(position).getSname();
+                intent.putExtra("song_name",song_name);
+                Log.d(TAG, "onItemClick: position" + songList.get(position).toString());
+                Log.d(TAG, "check: 0 "+song_name);
+                databaseReference.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                        view_str = dataSnapshot.child(song_name).child("views").getValue(String.class);
+                        view_count = Integer.valueOf(view_str);
+
+                        Log.d(TAG, "check: 1 "+view_str);
+                        Log.d(TAG, "check: 2 "+String.valueOf(view_count));
+                        progressBar.setVisibility(View.VISIBLE);
+
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+
+                storageReference.child(song_name).getDownloadUrl().addOnSuccessListener(
+                        new OnSuccessListener<Uri>() {
+                    @Override
+                    public void onSuccess(Uri uri) {
+                        musicLink = uri.toString();
+                        Log.d(TAG, "onSuccess: "+musicLink);
+                        Log.d(TAG, "check: 3 "+String.valueOf(view_count));
+                        view_count = view_count+1;
+                        Log.d(TAG, "check: 4 "+String.valueOf(view_count));
+                        view_str = String.valueOf(view_count);
+                        Log.d(TAG, "check: 5 "+view_str);
+                        databaseReference.child(song_name).child("views").setValue(view_str);
+                        //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
+                        Log.d(TAG, "check: 6 "+view_str);
+                        intent.putExtra("view", view_str);
+                        intent.putExtra("song_url",musicLink);
+                        startActivity(intent);
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(getApplicationContext(), "Something went wrong!", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+            }
+        });
+
+    }
+
+
+    public void upload(View view){
+        Intent intent = new Intent(this,Upload.class);
+        startActivity(intent);
+    }
+
 }
