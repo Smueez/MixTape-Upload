@@ -27,17 +27,8 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="@color/colorPrimary"
-                android:onClick="all_songs"
-                android:text="all"
-                android:textColor="@android:color/background_light" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:background="@color/colorPrimary"
-                android:onClick="whatsHot"
-
+                android:onClick="whatsNew"
+                android:id="@+id/newbttn"
                 android:text="new\nmusic"
                 android:textColor="@android:color/background_light" />
 
@@ -46,8 +37,19 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="@color/colorPrimary"
+                android:onClick="all_songs"
+                android:text="all Music"
+                android:id="@+id/all"
+                android:textColor="@android:color/background_light" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@color/colorPrimary"
                 android:onClick="whatsHot"
-                android:text="What's Hot"
+                android:text="Who's Hot"
+                android:id="@+id/hot"
                 android:textColor="@android:color/background_light" />
 
             <Button
@@ -56,6 +58,7 @@
                 android:layout_weight="1"
                 android:background="@color/colorPrimary"
                 android:onClick="mostPlayed"
+                android:id="@+id/viewed"
                 android:text="Most\nplayed"
                 android:textColor="@android:color/background_light" />
         </LinearLayout>
@@ -67,7 +70,16 @@
             android:layout_alignParentBottom="true"
             android:layout_alignParentStart="true"
             android:layout_weight="1"
-            android:drawSelectorOnTop="false" />
+            android:drawSelectorOnTop="false"
+            android:visibility="gone" />
+
+        <GridView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:numColumns="2"
+            android:gravity="center"
+            android:listSelector="#02e7fc"
+            android:visibility="visible"/>
 
     </LinearLayout>
 

@@ -344,7 +344,9 @@ public class Music_player extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // super.onBackPressed(); commented this line in order to disable back press
-
+        if (mediaPlayer.isPlaying()){
+            mediaPlayer.stop();
+        }
         Intent intent = new Intent(this,home.class);
         startActivity(intent);
     }
@@ -398,7 +400,7 @@ public class Music_player extends AppCompatActivity {
         });
     }
 
-    public void notificationDownload(){
+    /*public void notificationDownload(){
         Log.d(TAG, "notificationDownload: fuction called!");
         mNotifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mBuilder = new NotificationCompat.Builder(Music_player.this,"MixTape");
@@ -436,5 +438,5 @@ public class Music_player extends AppCompatActivity {
                 // Starts the thread by calling the run() method in its Runnable
         ).start();
 
-    }
+    }*/
 }

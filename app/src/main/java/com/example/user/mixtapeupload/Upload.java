@@ -35,6 +35,7 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
 import java.io.IOException;
+import java.util.Date;
 
 public class Upload extends AppCompatActivity implements View.OnClickListener  {
     private static final int SELECT_AUDIO = 2;
@@ -50,10 +51,13 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
     DatabaseReference databaseReference;
     private StorageReference storageReference ;
     TextView song_name,art_name,time_dur;
+    Date date;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_upload);
+        date = new Date();
+        //String d = date.
         buttonChoose = (Button) findViewById(R.id.buttonChoose);
         buttonUpload = (Button) findViewById(R.id.buttonUpload);
         backbttn = findViewById(R.id.button4);

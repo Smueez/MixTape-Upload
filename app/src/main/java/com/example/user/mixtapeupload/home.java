@@ -3,6 +3,7 @@ package com.example.user.mixtapeupload;
 
 import android.content.Intent;
 
+import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -68,6 +69,7 @@ public class home extends AppCompatActivity
     FirebaseAuth mauth;
     FirebaseUser muser;
     Intent intent1;
+    Button hot_bttn,new_bttn,topViewbttn,all_bttn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,7 +97,10 @@ public class home extends AppCompatActivity
         progressBar = findViewById(R.id.progressBar);
         mauth = FirebaseAuth.getInstance();
         intent1 = new Intent(this,MainActivity.class);
-
+        new_bttn = findViewById(R.id.newbttn);
+        all_bttn = findViewById(R.id.all);
+        hot_bttn = findViewById(R.id.hot);
+        topViewbttn = findViewById(R.id.viewed);
        // muser = mauth.getCurrentUser();
     }
     @Override
@@ -190,6 +195,10 @@ public class home extends AppCompatActivity
     }
     public void whatsHot(View view)
     {
+        hot_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
+        new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -220,6 +229,10 @@ public class home extends AppCompatActivity
 
     public void mostPlayed(View view)
     {
+        hot_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        topViewbttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
+        all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -250,6 +263,10 @@ public class home extends AppCompatActivity
 
     public void whatsNew(View view)
     {
+        hot_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        new_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
+        topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -279,8 +296,35 @@ public class home extends AppCompatActivity
     }
 
     public void all_songs(View view){
-        Intent intent = new Intent(this,home.class);
-        startActivity(intent);
+        hot_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        all_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
+        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                listView.setAdapter(null);
+                songList.clear();
+                Log.d(TAG, "onDataChange driver: done!");
+                for (DataSnapshot ds : dataSnapshot.getChildren()){
+                    Song song = ds.getValue(Song.class);
+                    songList.add(song);
+                }
+                Collections.sort(songList, new Comparator<Song>() {
+                    public int compare(Song s1, Song s2) {
+                        int res = sCompare(s1.sname,s2.sname);
+                        return res;
+                    }
+                });
+                Listadapter listadapter = new Listadapter(home.this,songList);
+                listView.setAdapter(listadapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
     }
 
     @Override
@@ -326,6 +370,7 @@ public class home extends AppCompatActivity
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
                         view_str = dataSnapshot.child(song_name).child("views").getValue(String.class);
+
                         view_count = Integer.valueOf(view_str);
 
                         Log.d(TAG, "check: 1 "+view_str);
