@@ -71,6 +71,7 @@ public class Music_player extends AppCompatActivity {
     ListView clistv;
     List<Comment> cList;
     LinearLayout linearLayout;
+
     private NotificationManager mNotifyManager;
     private NotificationCompat.Builder mBuilder;
     private static final int PERMISSION_REQUEST_CODE = 1;
@@ -96,9 +97,9 @@ public class Music_player extends AppCompatActivity {
         song_name_str = getIntent().getExtras().getString("song_name");
         musicURL = getIntent().getExtras().getString("song_url");
         Log.d(TAG, "onCreate: "+song_name_str);
-        databaseReference = FirebaseDatabase.getInstance().getReference().child("songs").child(song_name_str);
-        commentref = FirebaseDatabase.getInstance().getReference().child("songs").child(song_name_str);
-        storageReference = FirebaseStorage.getInstance().getReference().child("songs");
+        databaseReference = FirebaseDatabase.getInstance().getReference().child("audio").child(song_name_str);
+        commentref = FirebaseDatabase.getInstance().getReference().child("audio").child(song_name_str);
+        storageReference = FirebaseStorage.getInstance().getReference().child("audio");
         auth = FirebaseAuth.getInstance();
         userdata = FirebaseDatabase.getInstance().getReference().child("profile");
         linearLayout = findViewById(R.id.comment_layout);
@@ -248,9 +249,9 @@ public class Music_player extends AppCompatActivity {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                     name_str = dataSnapshot.child("name").getValue(String.class);
-                    if (dataSnapshot.hasChild("songs")) {
-                        if (dataSnapshot.child("songs").hasChild(song_name.getText().toString().trim())) {
-                            lover = dataSnapshot.child("songs").child(song_name.getText().toString().trim()).getValue(String.class);
+                    if (dataSnapshot.hasChild("audio")) {
+                        if (dataSnapshot.child("audio").hasChild(song_name.getText().toString().trim())) {
+                            lover = dataSnapshot.child("audio").child(song_name.getText().toString().trim()).getValue(String.class);
                             love_icon.setImageResource(R.drawable.loved);
                         }
                     }
@@ -292,7 +293,7 @@ public class Music_player extends AppCompatActivity {
         if (auth.getCurrentUser() != null) {
             if (lover != null) {
                 love_icon.setImageResource(R.drawable.uclickedlove);
-                userdata.child(user_email_str).child("songs").child(song_name.getText().toString().trim()).removeValue();
+                userdata.child(user_email_str).child("audio").child(song_name.getText().toString().trim()).removeValue();
                 if (like_count != 0) {
                     databaseReference.child("likes").setValue(String.valueOf(like_count - 1));
                     likes_count.setText(String.valueOf(like_count - 1));
@@ -305,7 +306,7 @@ public class Music_player extends AppCompatActivity {
 
             } else {
                 love_icon.setImageResource(R.drawable.loved);
-                userdata.child(user_email_str).child("songs").child(song_name.getText().toString().trim()).setValue("t");
+                userdata.child(user_email_str).child("audio").child(song_name.getText().toString().trim()).setValue("t");
                 databaseReference.child("likes").setValue(String.valueOf(like_count + 1));
                 lover = "t";
                 likes_count.setText(String.valueOf(like_count + 1));

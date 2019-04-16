@@ -55,7 +55,7 @@ public class profile extends AppCompatActivity {
         progressBar1 = findViewById(R.id.progressBar2);
         progressBar1.setVisibility(View.VISIBLE);
     }
-    private class DownLoadImageTask extends AsyncTask<String,Void,Bitmap> {
+    public static class DownLoadImageTask extends AsyncTask<String,Void,Bitmap> {
         ImageView imageView;
 
 

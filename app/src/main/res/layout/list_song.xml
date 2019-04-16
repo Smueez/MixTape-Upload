@@ -34,7 +34,7 @@
         <TextView
             android:id="@+id/song"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="25dp"
             android:text="Unknown"
             android:textColor="@android:color/background_light"
             android:textSize="20dp"
@@ -55,7 +55,7 @@
             <TextView
                 android:id="@+id/artist"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="16dp"
                 android:layout_weight="1"
                 android:text="TextView"
                 android:textColor="@android:color/background_light"
@@ -80,7 +80,7 @@
             <TextView
                 android:id="@+id/likes"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="17dp"
                 android:layout_weight="100"
                 android:text="TextView"
                 android:textColor="@android:color/background_light" />
@@ -104,7 +104,7 @@
             <TextView
                 android:id="@+id/views"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="17dp"
                 android:layout_weight="100"
                 android:text="TextView"
                 android:textColor="@android:color/background_light" />

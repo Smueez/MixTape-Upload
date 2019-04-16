@@ -125,7 +125,7 @@
                 android:id="@+id/gender">
 
                 <RadioButton
-                    android:id="@+id/radioButton"
+                    android:id="@+id/male"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginRight="100dp"
@@ -134,16 +134,18 @@
                     android:checked="true"
                     android:shadowColor="@android:color/background_light"
                     android:text="male"
-                    android:textColor="@android:color/background_light" />
+                    android:textColor="@android:color/background_light"
+                    android:onClick="addListenerOnButton"/>
 
                 <RadioButton
-                    android:id="@+id/radioButton2"
+                    android:id="@+id/female"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:buttonTint="@android:color/holo_blue_bright"
                     android:text="female"
-                    android:textColor="@android:color/background_light" />
+                    android:textColor="@android:color/background_light"
+                    android:onClick="addListenerOnButton"/>
 
             </RadioGroup>
         </LinearLayout>

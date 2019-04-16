@@ -1,6 +1,7 @@
 package com.example.user.mixtapeupload;
 
 
+import android.content.ClipData;
 import android.content.Intent;
 
 import android.graphics.Color;
@@ -24,6 +25,7 @@ import android.view.MenuItem;
 
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -67,10 +69,10 @@ public class home extends AppCompatActivity
     FirebaseAuth auth;
     ProgressBar progressBar;
     FirebaseAuth mauth;
-    FirebaseUser muser;
     Intent intent1;
     Button hot_bttn,new_bttn,topViewbttn,all_bttn;
-
+    GridView gridView;
+    String file_type = "audio";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,12 +89,18 @@ public class home extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-        storageReference = FirebaseStorage.getInstance().getReference().child("songs");
-        databaseReference = FirebaseDatabase.getInstance().getReference().child("songs");
+        storageReference = FirebaseStorage.getInstance().getReference().child(file_type);
+        databaseReference = FirebaseDatabase.getInstance().getReference().child(file_type);
         listView = findViewById(R.id.listview);
+        gridView = findViewById(R.id.gridview);
         songList = new ArrayList<>();
-        databaseReferencelist = FirebaseDatabase.getInstance().getReference().child("songs");
-        intent = new Intent(this,Music_player.class);
+        databaseReferencelist = FirebaseDatabase.getInstance().getReference().child(file_type);
+        if (file_type == "audio") {
+            intent = new Intent(this, Music_player.class);
+        } else {
+            intent = new Intent(this, VideoPlayer.class);
+
+        }
         auth = FirebaseAuth.getInstance();
         progressBar = findViewById(R.id.progressBar);
         mauth = FirebaseAuth.getInstance();
@@ -101,7 +109,6 @@ public class home extends AppCompatActivity
         all_bttn = findViewById(R.id.all);
         hot_bttn = findViewById(R.id.hot);
         topViewbttn = findViewById(R.id.viewed);
-       // muser = mauth.getCurrentUser();
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -182,6 +189,17 @@ public class home extends AppCompatActivity
             }
         }
 
+        else if (id == R.id.video){
+            if (file_type == "audio"){
+                item.setTitle("Music");
+                file_type = "video";
+            }
+            else  if (file_type == "video"){
+                item.setTitle("Videos");
+                file_type = "audio";
+            }
+        }
+
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -195,6 +213,8 @@ public class home extends AppCompatActivity
     }
     public void whatsHot(View view)
     {
+        gridView.setVisibility(View.GONE);
+        listView.setVisibility(View.VISIBLE);
         hot_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
@@ -229,6 +249,8 @@ public class home extends AppCompatActivity
 
     public void mostPlayed(View view)
     {
+        gridView.setVisibility(View.GONE);
+        listView.setVisibility(View.VISIBLE);
         hot_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
@@ -263,6 +285,8 @@ public class home extends AppCompatActivity
 
     public void whatsNew(View view)
     {
+        gridView.setVisibility(View.VISIBLE);
+        listView.setVisibility(View.GONE);
         hot_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         new_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
@@ -270,7 +294,7 @@ public class home extends AppCompatActivity
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                listView.setAdapter(null);
+                gridView.setAdapter(null);
                 songList.clear();
                 Log.d(TAG, "onDataChange driver: done!");
                 for (DataSnapshot ds : dataSnapshot.getChildren()){
@@ -285,7 +309,7 @@ public class home extends AppCompatActivity
                     }
                 });
                 Listadapter listadapter = new Listadapter(home.this,songList);
-                listView.setAdapter(listadapter);
+                gridView.setAdapter(listadapter);
             }
 
             @Override
@@ -300,6 +324,8 @@ public class home extends AppCompatActivity
         new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
+        gridView.setVisibility(View.GONE);
+        listView.setVisibility(View.VISIBLE);
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -333,7 +359,7 @@ public class home extends AppCompatActivity
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                listView.setAdapter(null);
+                gridView.setAdapter(null);
                 songList.clear();
                 Log.d(TAG, "onDataChange driver: done!");
                 for (DataSnapshot ds : dataSnapshot.getChildren()){
@@ -347,7 +373,7 @@ public class home extends AppCompatActivity
                     }
                 });
                 Listadapter listadapter = new Listadapter(home.this,songList);
-                listView.setAdapter(listadapter);
+                gridView.setAdapter(listadapter);
             }
 
             @Override
@@ -357,61 +383,117 @@ public class home extends AppCompatActivity
         });
 
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // clicked item
-                song_name = songList.get(position).getSname();
-                intent.putExtra("song_name",song_name);
-                Log.d(TAG, "onItemClick: position" + songList.get(position).toString());
-                Log.d(TAG, "check: 0 "+song_name);
-                databaseReference.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    // clicked item
+                    song_name = songList.get(position).getSname();
+                    intent.putExtra("song_name", song_name);
+                    Log.d(TAG, "onItemClick: position" + songList.get(position).toString());
+                    Log.d(TAG, "check: 0 " + song_name);
+                    databaseReference.addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
-                        view_str = dataSnapshot.child(song_name).child("views").getValue(String.class);
+                            view_str = dataSnapshot.child(song_name).child("views").getValue(String.class);
 
-                        view_count = Integer.valueOf(view_str);
+                            view_count = Integer.valueOf(view_str);
 
-                        Log.d(TAG, "check: 1 "+view_str);
-                        Log.d(TAG, "check: 2 "+String.valueOf(view_count));
-                        progressBar.setVisibility(View.VISIBLE);
+                            Log.d(TAG, "check: 1 " + view_str);
+                            Log.d(TAG, "check: 2 " + String.valueOf(view_count));
+                            progressBar.setVisibility(View.VISIBLE);
 
-                    }
+                        }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
 
-                    }
-                });
+                        }
+                    });
 
-                storageReference.child(song_name).getDownloadUrl().addOnSuccessListener(
-                        new OnSuccessListener<Uri>() {
-                    @Override
-                    public void onSuccess(Uri uri) {
-                        musicLink = uri.toString();
-                        Log.d(TAG, "onSuccess: "+musicLink);
-                        Log.d(TAG, "check: 3 "+String.valueOf(view_count));
-                        view_count = view_count+1;
-                        Log.d(TAG, "check: 4 "+String.valueOf(view_count));
-                        view_str = String.valueOf(view_count);
-                        Log.d(TAG, "check: 5 "+view_str);
-                        databaseReference.child(song_name).child("views").setValue(view_str);
-                        //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
-                        Log.d(TAG, "check: 6 "+view_str);
-                        intent.putExtra("view", view_str);
-                        intent.putExtra("song_url",musicLink);
-                        startActivity(intent);
-                    }
-                }).addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(getApplicationContext(), "Something went wrong!", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                    storageReference.child(song_name).getDownloadUrl().addOnSuccessListener(
+                            new OnSuccessListener<Uri>() {
+                                @Override
+                                public void onSuccess(Uri uri) {
+                                    musicLink = uri.toString();
+                                    Log.d(TAG, "onSuccess: " + musicLink);
+                                    Log.d(TAG, "check: 3 " + String.valueOf(view_count));
+                                    view_count = view_count + 1;
+                                    Log.d(TAG, "check: 4 " + String.valueOf(view_count));
+                                    view_str = String.valueOf(view_count);
+                                    Log.d(TAG, "check: 5 " + view_str);
+                                    databaseReference.child(song_name).child("views").setValue(view_str);
+                                    //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
+                                    Log.d(TAG, "check: 6 " + view_str);
+                                    intent.putExtra("view", view_str);
+                                    intent.putExtra("song_url", musicLink);
+                                    intent.putExtra("type",file_type);
+                                    startActivity(intent);
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(getApplicationContext(), "Something went wrong!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
 
-            }
-        });
+                }
+            });
+            gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    // clicked item
+                    song_name = songList.get(position).getSname();
+                    intent.putExtra("song_name", song_name);
+                    Log.d(TAG, "onItemClick: position" + songList.get(position).toString());
+                    Log.d(TAG, "check: 0 " + song_name);
+                    databaseReference.addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                            view_str = dataSnapshot.child(song_name).child("views").getValue(String.class);
+
+                            view_count = Integer.valueOf(view_str);
+
+                            Log.d(TAG, "check: 1 " + view_str);
+                            Log.d(TAG, "check: 2 " + String.valueOf(view_count));
+                            progressBar.setVisibility(View.VISIBLE);
+
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
+
+                    storageReference.child(song_name).getDownloadUrl().addOnSuccessListener(
+                            new OnSuccessListener<Uri>() {
+                                @Override
+                                public void onSuccess(Uri uri) {
+                                    musicLink = uri.toString();
+                                    Log.d(TAG, "onSuccess: " + musicLink);
+                                    Log.d(TAG, "check: 3 " + String.valueOf(view_count));
+                                    view_count = view_count + 1;
+                                    Log.d(TAG, "check: 4 " + String.valueOf(view_count));
+                                    view_str = String.valueOf(view_count);
+                                    Log.d(TAG, "check: 5 " + view_str);
+                                    databaseReference.child(song_name).child("views").setValue(view_str);
+                                    //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
+                                    Log.d(TAG, "check: 6 " + view_str);
+                                    intent.putExtra("view", view_str);
+                                    intent.putExtra("song_url", musicLink);
+                                    startActivity(intent);
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(getApplicationContext(), "Something went wrong!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
+                }
+            });
 
     }
 

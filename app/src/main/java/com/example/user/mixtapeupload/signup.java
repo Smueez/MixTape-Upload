@@ -58,7 +58,7 @@ public class signup extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
         radioSexGroup = findViewById(R.id.gender);
-        addListenerOnButton();
+        //addListenerOnButton();
         mAuth = FirebaseAuth.getInstance();
         mStroage = FirebaseStorage.getInstance().getReference().child("profile");
         mData = FirebaseDatabase.getInstance().getReference().child("profile");
@@ -70,7 +70,7 @@ public class signup extends AppCompatActivity {
         profile_pic = findViewById(R.id.profile_img);
         intent = new Intent(this,MainActivity.class);
     }
-    public void addListenerOnButton() {
+    public void addListenerOnButton(View view) {
 
         radioSexGroup.setOnClickListener(new View.OnClickListener() {
 
@@ -82,6 +82,7 @@ public class signup extends AppCompatActivity {
 
                 // find the radiobutton by returned id
                 radioButton =  findViewById(selectedId);
+
                 gender_str = radioButton.getText().toString().trim();
                 Log.d(TAG, "onClick: "+radioButton.getText().toString().trim());
 

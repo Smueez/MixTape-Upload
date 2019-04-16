@@ -44,7 +44,8 @@
         <service android:name=".MyBackgroundService" />
 
         <activity android:name=".Upload" />
-        <activity android:name=".profile"></activity>
+        <activity android:name=".profile" />
+        <activity android:name=".VideoPlayer"></activity>
     </application>
 
 </manifest>
