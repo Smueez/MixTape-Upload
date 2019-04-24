@@ -51,7 +51,7 @@ public class VideoPlayer extends AppCompatActivity {
     ImageView love_icon;
     int sec_int,min_int;
     // SeekBar seekBar;
-    Handler mHandler = new Handler();
+    //Handler mHandler = new Handler();
     String name_str;
     int like_count=0;
     TextView comment_txt;
@@ -197,7 +197,7 @@ public class VideoPlayer extends AppCompatActivity {
         if (videoPlayer.isPlaying()){
             videoPlayer.pause();
         }
-        Intent intent = new Intent(this,home.class);
+        Intent intent = new Intent(this,VideoList.class);
         startActivity(intent);
     }
     public void comment(View view){

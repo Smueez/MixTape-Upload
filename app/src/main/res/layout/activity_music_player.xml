@@ -8,14 +8,16 @@
     android:background="@drawable/background">
 
 
-    <ImageView
+    <de.hdodenhof.circleimageview.CircleImageView xmlns:app="http://schemas.android.com/apk/res-auto"
         android:id="@+id/imageView5"
         android:layout_width="227dp"
         android:layout_height="189dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        app:srcCompat="@drawable/cd"
-        android:layout_gravity="center"/>
+        android:layout_gravity="center"
+        android:src="@drawable/cd"
+        app:civ_border_color="#FF000000"
+        app:civ_border_width="1dp"/>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="45dp"
@@ -50,6 +52,22 @@
 
     </LinearLayout>
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:textColor="#ffff"
+        android:text="00:00"
+        android:id="@+id/seekText"
+        android:layout_above="@+id/seekBar"
+        android:layout_marginBottom="2dp"/>
+    <SeekBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/imageView7"
+        android:id="@+id/seekBar"
+        android:padding="0dp"
+        android:layout_marginBottom="5dp"/>
 
     <ImageView
         android:id="@+id/imageView7"
@@ -155,5 +173,73 @@
         android:layout_alignStart="@+id/textView3"
         android:layout_marginBottom="-77dp"
         android:textColor="@android:color/background_light" />
+
+    <LinearLayout
+        android:id="@+id/edit_layout"
+        android:layout_width="match_parent"
+        android:layout_height="245dp"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:background="#869fdf"
+        android:orientation="vertical">
+
+        <CheckBox
+            android:id="@+id/checkBox6"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="1" />
+
+        <CheckBox
+            android:id="@+id/checkBox5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/button7"
+            android:layout_width="230dp"
+            android:layout_height="15dp"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:background="@android:color/holo_blue_light"
+            android:text="add music"
+            android:onClick="addmusic"/>
+
+        <Button
+            android:id="@+id/button8"
+            android:layout_width="230dp"
+            android:layout_height="15dp"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:background="@android:color/holo_red_dark"
+            android:text="delete song"
+            android:onClick="delete"/>
+
+    </LinearLayout>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/exit_edit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/artist_name_m"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="-77dp"
+        android:clickable="true"
+        app:backgroundTint="@android:color/holo_orange_dark"
+        app:srcCompat="@android:drawable/ic_delete"
+        android:onClick="exit_edit"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/floatingActionButton7"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="74dp"
+        android:layout_toEndOf="@+id/imageView5"
+        android:clickable="true"
+        app:backgroundTint="@android:color/holo_blue_bright"
+        app:srcCompat="@android:drawable/ic_menu_edit"
+        android:onClick="edit_music"/>
 
 </RelativeLayout>

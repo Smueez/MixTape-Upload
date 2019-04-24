@@ -30,8 +30,10 @@ import com.google.firebase.storage.StorageReference;
 import java.io.InputStream;
 import java.net.URL;
 
+import de.hdodenhof.circleimageview.CircleImageView;
+
 public class profile extends AppCompatActivity {
-    ImageView imageView;
+    CircleImageView imageView;
     String TAG = "profile view ", urist,email_str;
     StorageReference storageReference;
     FirebaseAuth auth;
@@ -39,16 +41,19 @@ public class profile extends AppCompatActivity {
     DatabaseReference mfDatabase,data;
     TextView textView1;
     ProgressBar progressBar1;
+    TextView songsL,videoL;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
-        imageView = findViewById(R.id.imageView6);
+        imageView = findViewById(R.id.profile_image);
+        songsL = findViewById(R.id.lovedsong);
+        videoL = findViewById(R.id.lovedvid);
         auth = FirebaseAuth.getInstance();
         muser = auth.getCurrentUser();
         email_str = muser.getEmail();
         email_str = email_str.replace(".com","");
-        storageReference = FirebaseStorage.getInstance().getReference().child("profile").child(email_str);
+        storageReference = FirebaseStorage.getInstance().getReference();
         mfDatabase = FirebaseDatabase.getInstance().getReference().child("profile").child(email_str).child("imageuri");
         data = FirebaseDatabase.getInstance().getReference().child("profile").child(email_str);
         textView1 = findViewById(R.id.textView15);
@@ -133,6 +138,7 @@ public class profile extends AppCompatActivity {
         data.child("name").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
                 textView1.setText(dataSnapshot.getValue(String.class));
             }
 
@@ -141,6 +147,30 @@ public class profile extends AppCompatActivity {
 
             }
         });
+    data.addValueEventListener(new ValueEventListener() {
+        @Override
+        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+            if (dataSnapshot.hasChild("audio")){
+                int slike1 = (int) dataSnapshot.child("audio").getChildrenCount();
+                songsL.setText(String.valueOf(slike1));
+            }
+            else {
+                songsL.setText("0");
+            }
+            if (dataSnapshot.hasChild("video")){
+                int slike2 = (int) dataSnapshot.child("video").getChildrenCount();
+                videoL.setText(String.valueOf(slike2));
+            }else {
+                videoL.setText("0");
+            }
+        }
+
+        @Override
+        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+        }
+    });
+
     }
     @Override
     public void onBackPressed() {
@@ -149,5 +179,18 @@ public class profile extends AppCompatActivity {
         //Toast.makeText(getApplicationContext(), "Back press disabled!", Toast.LENGTH_SHORT).show();
         Intent intent = new Intent(this,home.class);
         startActivity(intent);
+    }
+    public void deact(View view){
+        final Intent intent = new Intent(this,MainActivity.class);
+        auth.signOut();
+        data.removeValue();
+        storageReference.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                muser.delete();
+                Toast.makeText(getApplicationContext(),"deactivated!",Toast.LENGTH_SHORT).show();
+                startActivity(intent);
+            }
+        });
     }
 }

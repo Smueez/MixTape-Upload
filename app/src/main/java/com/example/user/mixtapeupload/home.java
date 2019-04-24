@@ -54,11 +54,11 @@ import java.util.List;
 
 public class home extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
-    String view_str;
+    String view_str,imgurl;
     Uri filePath;
    StorageReference storageReference;
     private static final int SELECT_AUDIO = 2;
-    DatabaseReference databaseReference,databaseReferencelist;
+    DatabaseReference databaseReference,databaseReferencelist,databaseadmin;
     ListView listView;
     List<Song> songList;
     String TAG = "home content";
@@ -72,7 +72,8 @@ public class home extends AppCompatActivity
     Intent intent1;
     Button hot_bttn,new_bttn,topViewbttn,all_bttn;
     GridView gridView;
-    String file_type = "audio";
+    String file_type = "audio",muser_str,admin,file_place;
+    ImageView imageView1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,6 +90,15 @@ public class home extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+        auth = FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+
+            String muser_str1 = auth.getCurrentUser().getEmail();
+            muser_str = muser_str1.replace(".com","");
+            Log.d(TAG, "onCreate: " + muser_str);
+            databaseadmin = FirebaseDatabase.getInstance().getReference().child("profile").child(muser_str);
+
+        }
         storageReference = FirebaseStorage.getInstance().getReference().child(file_type);
         databaseReference = FirebaseDatabase.getInstance().getReference().child(file_type);
         listView = findViewById(R.id.listview);
@@ -101,14 +111,17 @@ public class home extends AppCompatActivity
             intent = new Intent(this, VideoPlayer.class);
 
         }
-        auth = FirebaseAuth.getInstance();
+        file_place = "whats_new";
+        imageView1 = findViewById(R.id.imageView16);
         progressBar = findViewById(R.id.progressBar);
+        //progressBar.setVisibility(View.VISIBLE);
         mauth = FirebaseAuth.getInstance();
         intent1 = new Intent(this,MainActivity.class);
         new_bttn = findViewById(R.id.newbttn);
         all_bttn = findViewById(R.id.all);
         hot_bttn = findViewById(R.id.hot);
         topViewbttn = findViewById(R.id.viewed);
+
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -168,7 +181,7 @@ public class home extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-
+        //Intent intent1 = new Intent(this,home.class);
         if (id == R.id.nav_camera) {
             // Handle the camera action
             if (auth.getCurrentUser() != null){
@@ -190,14 +203,8 @@ public class home extends AppCompatActivity
         }
 
         else if (id == R.id.video){
-            if (file_type == "audio"){
-                item.setTitle("Music");
-                file_type = "video";
-            }
-            else  if (file_type == "video"){
-                item.setTitle("Videos");
-                file_type = "audio";
-            }
+            Intent intent = new Intent(this,VideoList.class);
+            startActivity(intent);
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -219,6 +226,7 @@ public class home extends AppCompatActivity
         new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        file_place = "whoshot";
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -255,6 +263,7 @@ public class home extends AppCompatActivity
         new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        file_place = "all_music";
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -291,6 +300,7 @@ public class home extends AppCompatActivity
         new_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        file_place = "whats_new";
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -326,6 +336,7 @@ public class home extends AppCompatActivity
         all_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         gridView.setVisibility(View.GONE);
         listView.setVisibility(View.VISIBLE);
+        file_place = "all_music";
         databaseReferencelist.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -353,6 +364,25 @@ public class home extends AppCompatActivity
         });
     }
 
+    public int classCompare(Song a, Song b)
+    {
+        if(a.year == b.year)
+        {
+            if(a.mounth == b.year)
+            {
+                if(a.day > b.day)
+                {
+                    return 1;
+                }
+                else return -1;
+            }
+            else if(a.mounth > b.mounth) return 1;
+            else return -1;
+        }
+        else if(a.year > b.year) return 1;
+        else return -1;
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -363,13 +393,15 @@ public class home extends AppCompatActivity
                 songList.clear();
                 Log.d(TAG, "onDataChange driver: done!");
                 for (DataSnapshot ds : dataSnapshot.getChildren()){
+                    //progressBar.setVisibility(View.VISIBLE);
+
                     Song song = ds.getValue(Song.class);
                     songList.add(song);
                 }
                 Collections.sort(songList, new Comparator<Song>() {
                     public int compare(Song s1, Song s2) {
-                        int res = sCompare(s1.sname,s2.sname);
-                        return res;
+                        int re = classCompare(s1,s2);
+                        return re;
                     }
                 });
                 Listadapter listadapter = new Listadapter(home.this,songList);
@@ -378,9 +410,11 @@ public class home extends AppCompatActivity
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
+                //progressBar.setVisibility(View.GONE);
 
             }
         });
+        //progressBar.setVisibility(View.GONE);
 
 
             listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -389,6 +423,7 @@ public class home extends AppCompatActivity
                     // clicked item
                     song_name = songList.get(position).getSname();
                     intent.putExtra("song_name", song_name);
+
                     Log.d(TAG, "onItemClick: position" + songList.get(position).toString());
                     Log.d(TAG, "check: 0 " + song_name);
                     databaseReference.addValueEventListener(new ValueEventListener() {
@@ -396,7 +431,7 @@ public class home extends AppCompatActivity
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
                             view_str = dataSnapshot.child(song_name).child("views").getValue(String.class);
-
+                            imgurl = dataSnapshot.child(song_name).child("imageurl").getValue(String.class);
                             view_count = Integer.valueOf(view_str);
 
                             Log.d(TAG, "check: 1 " + view_str);
@@ -428,6 +463,8 @@ public class home extends AppCompatActivity
                                     intent.putExtra("view", view_str);
                                     intent.putExtra("song_url", musicLink);
                                     intent.putExtra("type",file_type);
+                                    intent.putExtra("music_image_url",imgurl);
+                                    intent.putExtra("file_place",file_place);
                                     startActivity(intent);
                                 }
                             }).addOnFailureListener(new OnFailureListener() {
@@ -483,6 +520,9 @@ public class home extends AppCompatActivity
                                     Log.d(TAG, "check: 6 " + view_str);
                                     intent.putExtra("view", view_str);
                                     intent.putExtra("song_url", musicLink);
+                                    intent.putExtra("type",file_type);
+                                    intent.putExtra("music_image_url",imgurl);
+                                    intent.putExtra("file_place",file_place);
                                     startActivity(intent);
                                 }
                             }).addOnFailureListener(new OnFailureListener() {
@@ -494,6 +534,32 @@ public class home extends AppCompatActivity
 
                 }
             });
+            if (auth.getCurrentUser() != null) {
+                databaseadmin.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.hasChild("admin")){
+                            imageView1.setVisibility(View.VISIBLE);
+                        }
+                        else {
+                            imageView1.setVisibility(View.GONE);
+
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+                Log.d(TAG, "onDataChange: admin2 " +admin);
+
+            }
+            else {
+                imageView1.setVisibility(View.GONE);
+            }
+        Log.d(TAG, "onDataChange: admin4 " +admin);
+        Log.d(TAG, "onDataChange: admin5 " +admin);
 
     }
 
@@ -502,5 +568,6 @@ public class home extends AppCompatActivity
         Intent intent = new Intent(this,Upload.class);
         startActivity(intent);
     }
+
 
 }

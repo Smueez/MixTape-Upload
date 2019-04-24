@@ -1,7 +1,7 @@
 package com.example.user.mixtapeupload;
 
 public class PassDataProfile {
-    String password,name,imageuri,sex,admin;
+    String password,name,imageuri,sex;
     PassDataProfile(){
 
     }
@@ -10,7 +10,6 @@ public class PassDataProfile {
         this.password = password;
         this.imageuri = imageuri;
         this.sex = sex;
-        this.admin = "false";
     }
 
     public String getName() {
@@ -19,10 +18,6 @@ public class PassDataProfile {
 
     public String getPassword() {
         return password;
-    }
-
-    public String getAdmin() {
-        return admin;
     }
 
     public String getImageuri() {

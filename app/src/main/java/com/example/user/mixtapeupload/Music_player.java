@@ -6,25 +6,36 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.MediaController;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,34 +55,51 @@ import com.google.firebase.storage.StorageReference;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class Music_player extends AppCompatActivity {
     MediaPlayer mediaPlayer;
     Intent serviceintent;
     boolean playmusicbool = true;
     ImageView playbttn;
+    CircleImageView songImage;
     String musicURL,TAG = "music player activity";
     TextView song_name, art_nam, likes_count, views_count;
     String song_name_str,sec_str,min_str;
     DatabaseReference databaseReference,userdata,commentref;
-    StorageReference storageReference;
+    StorageReference storageReference,storageReference1;
     FirebaseUser fuser;
     FirebaseAuth auth;
     String user_email_str;
     String lover = null;
     ImageView love_icon;
     int sec_int,min_int;
-   // SeekBar seekBar;
+    CheckBox checkBox1,checkBox2;
+    // SeekBar
+    SeekBar seekBar;
+    TextView seekText;
+    int mediaduration;
+    int realTimeDuration;
+    int secondPercent = 1;
+    int inc=0;
+    LinearLayout linearLayout;
+    Button button_exit,button_edit;
+    NotificationCompat.Builder builder;
+
     Handler mHandler = new Handler();
-    String name_str;
+    String name_str,urist,file_place;
     int like_count=0;
     TextView comment_txt;
     ListView clistv;
     List<Comment> cList;
-    LinearLayout linearLayout;
-
+    LinearLayout linearLayout_edit;
+    Animation rotate;
     private NotificationManager mNotifyManager;
     private NotificationCompat.Builder mBuilder;
     private static final int PERMISSION_REQUEST_CODE = 1;
@@ -79,6 +107,7 @@ public class Music_player extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_music_player);
+        songImage = findViewById(R.id.imageView5);
         try {
             serviceintent = new Intent(this,MyBackgroundService.class);
 
@@ -96,10 +125,29 @@ public class Music_player extends AppCompatActivity {
         views_count = findViewById(R.id.textView4);
         song_name_str = getIntent().getExtras().getString("song_name");
         musicURL = getIntent().getExtras().getString("song_url");
+        file_place = getIntent().getExtras().getString("file_place");
+        checkBox1 = findViewById(R.id.checkBox6);
+        checkBox2 = findViewById(R.id.checkBox5);
+        button_edit = findViewById(R.id.floatingActionButton7);
+        button_exit = findViewById(R.id.exit_edit);
+        linearLayout_edit = findViewById(R.id.edit_layout);
+        if (file_place == "whos_hot"){
+            checkBox1.setText("All Music");
+            checkBox2.setText("New Music");
+        }
+        else if (file_place == "all_music"){
+            checkBox1.setText("Who's Hot");
+            checkBox2.setText("New Music");
+        }
+        else {
+            checkBox1.setText("Who's Hot");
+            checkBox2.setText("All Music");
+        }
         Log.d(TAG, "onCreate: "+song_name_str);
-        databaseReference = FirebaseDatabase.getInstance().getReference().child("audio").child(song_name_str);
-        commentref = FirebaseDatabase.getInstance().getReference().child("audio").child(song_name_str);
+        databaseReference = FirebaseDatabase.getInstance().getReference().child("audio").child(file_place).child(song_name_str);
+        commentref = FirebaseDatabase.getInstance().getReference().child("audio").child(file_place).child(song_name_str);
         storageReference = FirebaseStorage.getInstance().getReference().child("audio");
+        storageReference1 = FirebaseStorage.getInstance().getReference();
         auth = FirebaseAuth.getInstance();
         userdata = FirebaseDatabase.getInstance().getReference().child("profile");
         linearLayout = findViewById(R.id.comment_layout);
@@ -111,6 +159,26 @@ public class Music_player extends AppCompatActivity {
         else {
             linearLayout.setVisibility(View.GONE);
         }
+        rotate = AnimationUtils.loadAnimation(this,R.anim.rotation);
+        seekBar = findViewById(R.id.seekBar);
+        seekBar.setMax(99);
+        seekText = findViewById(R.id.seekText);
+        seekBar.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                if(mediaPlayer.isPlaying()){
+
+                    SeekBar seekBar = (SeekBar)view;
+                    int playposition = (mediaduration/100) * seekBar.getProgress();
+                    realTimeDuration += mediaPlayer.getCurrentPosition() - playposition;
+                    mediaPlayer.seekTo(playposition);
+
+                }
+
+                return false;
+            }
+        });
+
         mediaPlayer = new MediaPlayer();
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         love_icon = findViewById(R.id.imageView10);
@@ -133,44 +201,18 @@ public class Music_player extends AppCompatActivity {
             e.printStackTrace();
         }
 
+        mediaduration = mediaPlayer.getDuration();
+        realTimeDuration = mediaduration;
+
+
         mediaPlayer.start();
+
+        updateSeekbar();
+
         //seekBar.setMax(mediaPlayer.getDuration());
         Log.d(TAG, "onCreate: "+mediaPlayer.getDuration());
 
-//Make sure you update Seekbar on UI thread
-       /* Music_player.this.runOnUiThread(new Runnable() {
 
-            @Override
-            public void run() {
-                if(mediaPlayer != null){
-                    int mCurrentPosition = mediaPlayer.getCurrentPosition() / 1000;
-                    Log.d(TAG, "run: "+String.valueOf(mCurrentPosition));
-                    seekBar.setProgress(mCurrentPosition);
-                }
-                mHandler.postDelayed(this, 1000);
-            }
-        });
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(mediaPlayer != null && fromUser){
-                    Log.d(TAG, "onProgressChanged: "+String.valueOf(progress*1000));
-                    mediaPlayer.seekTo(progress *1000);
-                    seekBar.setProgress(progress);
-                }
-            }
-        });*/
         if (Build.VERSION.SDK_INT >= 23)
         {
             if (checkPermission())
@@ -190,8 +232,93 @@ public class Music_player extends AppCompatActivity {
             // Do next code
         }
 
+        builder = new NotificationCompat.Builder(this, "music")
+                .setSmallIcon(R.drawable.welcomesrecean)
+                .setContentTitle("MixTape Upload")
+                .setContentText("Now " + song_name_str + " is playing ...")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+// notificationId is a unique int for each notification that you must define
+        notificationManager.notify(0, builder.build());
+
+        new CountDownTimer(realTimeDuration*1000, 1000){
+            @Override
+            public void onFinish() {
+
+            }
+
+            @Override
+            public void onTick(long millisUntilFinished) {
+                songImage.setAnimation(rotate);
+            }
+        }.start();
+
+    }
+    public static class DownLoadImageTask extends AsyncTask<String,Void,Bitmap> {
+        CircleImageView songImage;
+
+
+        public DownLoadImageTask(CircleImageView songImage){
+            this.songImage = songImage;
+        }
+
+        /*
+            doInBackground(Params... params)
+                Override this method to perform a computation on a background thread.
+         */
+        protected Bitmap doInBackground(String...urls){
+            String urlOfImage = urls[0];
+            Bitmap logo = null;
+            try{
+                InputStream is = new URL(urlOfImage).openStream();
+                /*
+                    decodeStream(InputStream is)
+                        Decode an input stream into a bitmap.
+                 */
+                logo = BitmapFactory.decodeStream(is);
+            }catch(Exception e){ // Catch the download exception
+                e.printStackTrace();
+            }
+            return logo;
+        }
+
+        /*
+            onPostExecute(Result result)
+                Runs on the UI thread after doInBackground(Params...).
+         */
+        protected void onPostExecute(Bitmap result){
+            songImage.setImageBitmap(result);
+        }
     }
 
+
+    private void updateSeekbar() {
+        seekBar.setProgress((int)(((float)mediaPlayer.getCurrentPosition()/mediaduration) * 100));
+        if(mediaPlayer.isPlaying()){
+            Runnable updater = new Runnable() {
+                @Override
+                public void run() {
+                    updateSeekbar();
+                    realTimeDuration -= 1000;
+                    seekText.setText(String.format("%d:%d", TimeUnit.MILLISECONDS.toMinutes(realTimeDuration),
+                            TimeUnit.MILLISECONDS.toSeconds(realTimeDuration) -
+                            TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(realTimeDuration))));
+
+
+                    if(secondPercent < 99){
+                        secondPercent  = secondPercent + inc;
+                        inc += 1;
+                        seekBar.setSecondaryProgress(secondPercent);
+                    }
+
+
+                }
+            };
+            mHandler.postDelayed(updater,1000);
+        }
+    }
 
 
     private boolean checkPermission() {
@@ -287,6 +414,64 @@ public class Music_player extends AppCompatActivity {
                 }
             });
 
+        urist = getIntent().getExtras().getString("music_image_url");
+        if(urist != "empty") {
+            Log.d(TAG, "onDataChange: urist "+urist);
+            storageReference1.child(urist).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                @Override
+                public void onSuccess(Uri uri) {
+                    Log.d(TAG, "onSuccess: got url of image!");
+                    new Music_player.DownLoadImageTask(songImage).execute(uri.toString());
+                    Log.d(TAG, "onSuccess: "+uri.toString());
+                    // progressBar1.setVisibility(View.GONE);
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.d(TAG, "onFailure: "+e.getMessage());
+                }
+            });
+        }
+        else {
+            songImage.setImageResource(R.drawable.cd);
+        }
+
+        /*ValueEventListener eventListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                String urist = dataSnapshot.child("imageurl").getValue(String.class);
+                Log.d(TAG, "onDataChange: "+urist);
+                if(urist != "empty") {
+                    Log.d(TAG, "onDataChange: urist "+urist);
+                    storageReference1.child(urist).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                        @Override
+                        public void onSuccess(Uri uri) {
+                            Log.d(TAG, "onSuccess: got url of image!");
+                            new profile.DownLoadImageTask(songImage).execute(uri.toString());
+                            Log.d(TAG, "onSuccess: "+uri.toString());
+                           // progressBar1.setVisibility(View.GONE);
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.d(TAG, "onFailure: "+e.getMessage());
+                           // Toast.makeText(getApplicationContext(),"Can not load image!",Toast.LENGTH_LONG).show();
+                            //progressBar1.setVisibility(View.GONE);
+                        }
+                    });
+                }
+                else {
+                    songImage.setImageResource(R.drawable.cd);
+                    //progressBar1.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.d(TAG, "onCancelled: something went wrong!");
+            }
+        };
+        databaseReference.addValueEventListener(eventListener);*/
     }
 
     public void liked(View view){
@@ -316,6 +501,8 @@ public class Music_player extends AppCompatActivity {
             Toast.makeText(getApplicationContext(),"Login first!",Toast.LENGTH_LONG).show();
         }
     }
+
+
     public void playorstop(View view){
         if (playmusicbool) {
             Log.d(TAG, "playorstop: player playing!");
@@ -332,14 +519,14 @@ public class Music_player extends AppCompatActivity {
                 }
             }
             mediaPlayer.start();
-
+            updateSeekbar();
         }
         else {
             Log.d(TAG, "playorstop: not playing!");
             playbttn.setImageResource(R.drawable.playmusic);
             mediaPlayer.pause();
             playmusicbool = true;
-
+            updateSeekbar();
         }
     }
     @Override
@@ -349,6 +536,11 @@ public class Music_player extends AppCompatActivity {
             mediaPlayer.stop();
         }
         Intent intent = new Intent(this,home.class);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+// notificationId is a unique int for each notification that you must define
+        notificationManager.cancel(0);
+
         startActivity(intent);
     }
     public void comment(View view){
@@ -400,44 +592,30 @@ public class Music_player extends AppCompatActivity {
             }
         });
     }
+    public  void edit_music(View view){
+        linearLayout_edit.setVisibility(View.VISIBLE);
+        button_exit.setVisibility(View.VISIBLE);
+        button_edit.animate().alpha((float) 0.3);
+    }
 
-    /*public void notificationDownload(){
-        Log.d(TAG, "notificationDownload: fuction called!");
-        mNotifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mBuilder = new NotificationCompat.Builder(Music_player.this,"MixTape");
-        mBuilder.setContentTitle("MixTape Upload")
-                .setContentText("Download in progress")
-                .setSmallIcon(R.drawable.welcomesrecean);
-        new Thread(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        int incr;
-                        // Do the "lengthy" operation 20 times
-                        Log.d(TAG, "run: thread works");
-                        for (incr = 0; incr <= 100; incr+=5) {
-                            // Sets the progress indicator to a max value, the current completion percentage and "determinate" state
-                            mBuilder.setProgress(100, incr, false);
-                            // Displays the progress bar for the first time.
-                            mNotifyManager.notify(1, mBuilder.build());
-                            // Sleeps the thread, simulating an operation
-                            try {
-                                // Sleep for 1 second
-                                Log.d(TAG, "run: thred working!");
-                                Thread.sleep(1*1000);
-                            } catch (InterruptedException e) {
-                                Log.d("TAG", "sleep failure");
-                            }
-                        }
-                        // When the loop is finished, updates the notification
-                        mBuilder.setContentText("Download completed")
-                                // Removes the progress bar
-                                .setProgress(0,0,false);
-                        mNotifyManager.notify(1, mBuilder.build());
-                    }
-                }
-                // Starts the thread by calling the run() method in its Runnable
-        ).start();
+    public void exit_edit(View view){
+        linearLayout_edit.setVisibility(View.GONE);
+        button_exit.setVisibility(View.GONE);
+        button_edit.animate().alpha(1);
+    }
+    public void addmusic(View view){
 
-    }*/
+    }
+    public void delete(View view){
+        final Intent intent = new Intent(this,home.class);
+        auth.signOut();
+        databaseReference.removeValue();
+        storageReference.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                Toast.makeText(getApplicationContext(),"deactivated!",Toast.LENGTH_SHORT).show();
+                startActivity(intent);
+            }
+        });
+    }
 }

@@ -61,4 +61,8 @@ public class Song {
     public long getYear() {
         return year;
     }
+
+    public String getImageurl() {
+        return imageurl;
+    }
 }

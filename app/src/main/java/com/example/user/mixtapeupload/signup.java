@@ -39,8 +39,7 @@ import java.util.regex.Pattern;
 
 public class signup extends AppCompatActivity {
 
-    RadioGroup radioSexGroup;
-    RadioButton radioButton;
+
     FirebaseAuth mAuth;
     StorageReference mStroage;
     DatabaseReference mData;
@@ -57,7 +56,7 @@ public class signup extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
-        radioSexGroup = findViewById(R.id.gender);
+
         //addListenerOnButton();
         mAuth = FirebaseAuth.getInstance();
         mStroage = FirebaseStorage.getInstance().getReference().child("profile");
@@ -72,7 +71,7 @@ public class signup extends AppCompatActivity {
     }
     public void addListenerOnButton(View view) {
 
-        radioSexGroup.setOnClickListener(new View.OnClickListener() {
+        /*radioSexGroup.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -88,7 +87,25 @@ public class signup extends AppCompatActivity {
 
             }
 
-        });
+        });*/
+        boolean checked = ((RadioButton) view).isChecked();
+
+        // Check which radio button was clicked
+        switch(view.getId()) {
+            case R.id.male:
+                if (checked)
+                    gender_str = "male";
+
+                Log.d(TAG, "addListenerOnButton1: "+gender_str);
+                break;
+            case R.id.videobttn:
+                if (checked)
+                    gender_str = "female";
+
+                Log.d(TAG, "addListenerOnButton1: "+gender_str);
+
+                break;
+        }
 
     }
     public static boolean isValidEmailAddress(String emailAddress) {
@@ -166,6 +183,7 @@ public class signup extends AppCompatActivity {
                                     String email_cut = email_str.replace(".com","");
                                     uploadimg(email_cut);
                                     uristr = "profile/"+email_cut+"/"+email_cut+"."+getFileExtention(uri);
+                                    Log.d(TAG, "onComplete: gender "+gender_str);
                                     PassDataProfile dataProfile = new PassDataProfile(name_str,password_str,uristr,gender_str);
                                     mData.child(email_cut).setValue(dataProfile);
                                     startActivity(intent);

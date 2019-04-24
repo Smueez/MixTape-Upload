@@ -22,6 +22,7 @@ import android.util.Log;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -45,19 +46,18 @@ import java.util.Calendar;
 import java.util.Date;
 
 public class Upload extends AppCompatActivity implements View.OnClickListener  {
-    private static final int SELECT_AUDIO = 2;
+    private static final int SELECT_AUDIO = 1;
     private static final int PERMISSION_REQUEST_CODE = 1,result_loead_image=1,PICK_VIDEO_REQUEST=3;
-    //Buttons
-    RadioGroup radioGroup;
-   // RadioButton radioButton;
+
     private Button buttonChoose;
     private Button buttonUpload,backbttn;
     int secs, mins;
     String songurl,artist,name;
+    CheckBox whoshot, newmusic,allmusic;
 
     //a Uri object to store file path
     private Uri filePath,imagepath;
-    DatabaseReference databaseReference,databaseReference1;
+    DatabaseReference databaseReference,databaseReference1,databaseReference_whoshot,databaseReference_new,databaseReference_all;
     private StorageReference storageReference ;
     TextView song_name,art_name,time_dur;
     Date date;
@@ -87,9 +87,14 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         LocalDate localDate = LocalDate.now();
         strDate = dtf.format(localDate);
-        st1 = strDate.charAt(8)+strDate.charAt(9);
-        st2 = strDate.charAt(5)+strDate.charAt(6);
-        st3 = strDate.charAt(0)+strDate.charAt(1)+strDate.charAt(2)+strDate.charAt(3);
+        Log.d(TAG, "onCreate: date "+strDate);
+        String st1_str = strDate.substring(8,10);
+        String st2_str = strDate.substring(5,7);
+        String st3_str = strDate.substring(0,4);
+        Log.d(TAG, "onCreate: date1 "+st1_str+" "+st2_str+" "+st3_str);
+        st1 = Integer.parseInt(st1_str);
+        st2 = Integer.parseInt(st2_str);
+        st3 = Integer.parseInt(st3_str);
         Log.d(TAG, "onCreate: "+st1+" "+st2+ " "+ st3);
         storageReference = FirebaseStorage.getInstance().getReference();
         if (Build.VERSION.SDK_INT >= 23)
@@ -113,26 +118,14 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         song_name = findViewById(R.id.textView5);
         art_name = findViewById(R.id.textView8);
         time_dur = findViewById(R.id.textView9);
+        whoshot = findViewById(R.id.checkBox);
+        newmusic = findViewById(R.id.checkBox2);
+        allmusic = findViewById(R.id.checkBox3);
+
     }
     public void addListenerOnButton1(View view) {
 
-        /*radioGroup.setOnClickListener(new View.OnClickListener() {
 
-            @Override
-            public void onClick(View v) {
-
-                // get selected radio button from radioGroup
-                int selectedId = radioGroup.getCheckedRadioButtonId();
-
-                // find the radiobutton by returned id
-                radioButton =  findViewById(selectedId);
-                type_str = radioButton.getText().toString().trim();
-                databaseReference = databaseReference1.child(type_str);
-                Log.d(TAG, "onClick: "+radioButton.getText().toString().trim());
-
-            }
-
-        });*/
         boolean checked = ((RadioButton) view).isChecked();
 
         // Check which radio button was clicked
@@ -181,12 +174,17 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
             ActivityCompat.requestPermissions(Upload.this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
         }
     }
-    private void showFileChooser() {
+    private void showFileChooser_audio() {
         Intent intent = new Intent();
         intent.setType("audio/*");
-        intent.setType("video/*");
+       // intent.setType("video/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent, SELECT_AUDIO);
+    }
+    private void showFileChooser_video(){
+        Intent intent = new Intent();
+        intent.setType("video/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent,PICK_VIDEO_REQUEST);
     }
 
@@ -310,7 +308,7 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
 
                 if (imagepath != null) {
                     Log.d(TAG, "uploadFile: "+imagepath.toString().trim());
-                    StorageReference Sref = storageReference.child(type_str).child(name).child(name);
+                    StorageReference Sref = storageReference.child(type_str).child(name+"img").child(name);
                     Sref.putFile(imagepath).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
@@ -322,7 +320,7 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
                             Toast.makeText(getApplicationContext(), "image upload failed!", Toast.LENGTH_SHORT).show();
                         }
                     });
-                    imageurl = type_str + "/" + name + "." + ext_img;
+                    imageurl = type_str + "/" + name +"img/"+ name + "." + ext_img;
                 }
                 else {
                     imageurl = "empty";
@@ -371,15 +369,40 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         String sec,min;
         sec = s.toString();
         min = m.toString();
+        if (whoshot.isChecked()){
+            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
+            databaseReference.child("whoshot").child(nm).setValue(song);
+        }
+        if (newmusic.isChecked()){
+            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
+            databaseReference.child("new").child(nm).setValue(song);
+        }
+        if (allmusic.isChecked()){
+            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
+            databaseReference.child("new").child(nm).setValue(song);
+        }
+        if (!whoshot.isChecked() && !newmusic.isChecked() && !allmusic.isChecked()){
+            Toast.makeText(getApplicationContext(),"Select where to put your music!",Toast.LENGTH_SHORT).show();
+        }
 
-        Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
-        databaseReference.child(nm).setValue(song);
+       /* Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
+        databaseReference.child(nm).setValue(song);*/
     }
     @Override
     public void onClick(View view) {
         Intent intent = new Intent(this,home.class);
         if (view == buttonChoose) {
-            showFileChooser();
+            if (type_str != null) {
+                if (type_str == "audio") {
+                    showFileChooser_audio();
+                }
+                else {
+                    showFileChooser_video();
+                }
+            }
+            else {
+                Toast.makeText(getApplicationContext(),"Please choose file type",Toast.LENGTH_SHORT).show();
+            }
         }
         //if the clicked button is upload
         else if (view == buttonUpload) {
