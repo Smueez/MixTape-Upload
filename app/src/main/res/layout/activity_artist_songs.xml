@@ -29,7 +29,8 @@
         android:layout_height="447dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="64dp" />
+        android:layout_marginTop="64dp"
+        android:listSelector="#02e7fc"/>
 
     <TextView
         android:id="@+id/textView22"
