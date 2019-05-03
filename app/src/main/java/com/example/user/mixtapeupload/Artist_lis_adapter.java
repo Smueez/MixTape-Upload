@@ -14,12 +14,9 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
@@ -27,17 +24,16 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 
-import de.hdodenhof.circleimageview.CircleImageView;
-
 import static android.support.constraint.Constraints.TAG;
 
-public class Listadapter extends ArrayAdapter<Song> {
+public class Artist_lis_adapter extends ArrayAdapter<Artist_class> {
     private Activity context;
-    private List<Song> list;
+    private List<Artist_class> list;
     String list_img;
+    ImageView imageView;
 
-    public Listadapter(Activity context,List<Song>list){
-        super(context,R.layout.list_song,list);
+    public Artist_lis_adapter(Activity context,List<Artist_class>list){
+        super(context,R.layout.artist_adapter,list);
 
         this.context = context;
         this.list = list;
@@ -85,22 +81,24 @@ public class Listadapter extends ArrayAdapter<Song> {
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
 
         LayoutInflater inflater = context.getLayoutInflater();
-        View mylistview = inflater.inflate(R.layout.list_song,null,true);
+        View mylistview = inflater.inflate(R.layout.artist_adapter,null,true);
 
         StorageReference storageReference1 = FirebaseStorage.getInstance().getReference().child("image");
+        TextView artistnm = mylistview.findViewById(R.id.textView);
 
-        TextView songName = mylistview.findViewById(R.id.song);
-        TextView artist = mylistview.findViewById(R.id.artist);
+        TextView likes_count = mylistview.findViewById(R.id.textView21);
+        TextView song_count = mylistview.findViewById(R.id.textView20);
+        TextView view_count = mylistview.findViewById(R.id.textView213);
 
-        TextView likes = mylistview.findViewById(R.id.likes);
-        TextView views = mylistview.findViewById(R.id.views);
-        final ImageView imageView = mylistview.findViewById(R.id.imageView3);
-        Song song1 = list.get(position);
-        songName.setText(song1.getSname());
-        artist.setText(song1.getArtist());
-        likes.setText(song1.getLikes());
-        views.setText(song1.getViews());
-        list_img = song1.getImageurl();
+
+        imageView = mylistview.findViewById(R.id.imageView9);
+        Artist_class song1 = list.get(position);
+
+        artistnm.setText(song1.getArtist_name());
+        likes_count.setText(song1.getTotal_likes());
+        song_count.setText(String.valueOf(song1.getSong_count()));
+        view_count.setText(song1.getView_count());
+        list_img = song1.getImg_url();
 
         if (list_img != "empty"){
             storageReference1.child(list_img).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {

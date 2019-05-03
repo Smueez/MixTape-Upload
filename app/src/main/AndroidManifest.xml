@@ -7,10 +7,10 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
-
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:grantUriPermissions="true"
         android:icon="@mipmap/ic_launcher"
@@ -40,23 +40,44 @@
         <activity
             android:name=".home"
             android:label="@string/title_activity_home"
+            android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".Music_player"
-            android:label="@string/title_activity_home" />
+            android:label="@string/title_activity_home"
+            android:screenOrientation="portrait" />
 
         <service android:name=".MyBackgroundService" />
 
         <activity
             android:name=".Upload"
-            android:label="@string/title_activity_home" />
+            android:label="@string/title_activity_home"
+            android:parentActivityName=".home"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".profile"
-            android:label="@string/title_activity_home" />
+            android:label="@string/title_activity_home"
+            android:parentActivityName=".home"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".VideoPlayer"
-            android:label="@string/title_activity_home" />
-        <activity android:name=".VideoList"></activity>
+            android:label="@string/title_activity_home"
+            android:parentActivityName=".home"
+            android:screenOrientation="portrait" />
+        <activity android:name=".VideoList" />
+        <activity
+            android:name=".Artist_list"
+            android:label="@string/title_activity_home"
+            android:parentActivityName=".home"
+            android:screenOrientation="portrait">
+
+        </activity>
+        <activity android:name=".Artist_songs"
+            android:label="@string/title_activity_home"
+            android:parentActivityName=".Artist_list"
+            android:screenOrientation="portrait">
+
+        </activity>
     </application>
 
 </manifest>

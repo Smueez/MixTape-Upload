@@ -7,11 +7,12 @@ public class Song {
     public String url;
     public String sec,min;
     public long day,mounth,year;
-    public  String imageurl;
+    public  String imageurl,file_place;
+
     Song(){
 
     }
-    Song(String sec,String min,String url,String imageurl, String artist, String likes, String views, String sname, long day, long mounth, long year){
+    Song(String sec,String min,String url,String imageurl, String artist, String likes, String views, String sname, long day, long mounth, long year, String file_place){
         this.url = url;
         this.artist = artist;
         this.likes = likes;
@@ -23,6 +24,7 @@ public class Song {
         this.mounth = mounth;
         this.year = year;
         this.imageurl = imageurl;
+        this.file_place = file_place;
     }
 
 

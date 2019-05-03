@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 public class home extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -58,22 +59,27 @@ public class home extends AppCompatActivity
     Uri filePath;
    StorageReference storageReference;
     private static final int SELECT_AUDIO = 2;
-    DatabaseReference databaseReference,databaseReferencelist,databaseadmin;
+    DatabaseReference databaseReference,databaseReferencelist,databaseadmin,databaseReference_artist,databaseReference_artist_song;
     ListView listView;
     List<Song> songList;
     String TAG = "home content";
     ImageView imageView;
     String artist,name,song_name,musicLink;
     Intent intent;
-    int view_count = 0;
+    int view_count ;
     FirebaseAuth auth;
     ProgressBar progressBar;
     FirebaseAuth mauth;
     Intent intent1;
     Button hot_bttn,new_bttn,topViewbttn,all_bttn;
     GridView gridView;
-    String file_type = "audio",muser_str,admin,file_place;
+    String file_type = "audio",muser_str,admin,file_place="New Music",artist_view_str;
     ImageView imageView1;
+    int artist_view;
+    String song_artist_view;
+    int song_artist_view_count;
+    final Semaphore semaphore = new Semaphore(0);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,6 +107,9 @@ public class home extends AppCompatActivity
         }
         storageReference = FirebaseStorage.getInstance().getReference().child(file_type);
         databaseReference = FirebaseDatabase.getInstance().getReference().child(file_type);
+        databaseReference_artist = FirebaseDatabase.getInstance().getReference().child("artist");
+        databaseReference_artist_song = FirebaseDatabase.getInstance().getReference().child("artist_songs");
+
         listView = findViewById(R.id.listview);
         gridView = findViewById(R.id.gridview);
         songList = new ArrayList<>();
@@ -111,7 +120,7 @@ public class home extends AppCompatActivity
             intent = new Intent(this, VideoPlayer.class);
 
         }
-        file_place = "whats_new";
+        //file_place = "New Music";
         imageView1 = findViewById(R.id.imageView16);
         progressBar = findViewById(R.id.progressBar);
         //progressBar.setVisibility(View.VISIBLE);
@@ -121,6 +130,10 @@ public class home extends AppCompatActivity
         all_bttn = findViewById(R.id.all);
         hot_bttn = findViewById(R.id.hot);
         topViewbttn = findViewById(R.id.viewed);
+        hot_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        new_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
+        topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
 
     }
     @Override
@@ -206,6 +219,10 @@ public class home extends AppCompatActivity
             Intent intent = new Intent(this,VideoList.class);
             startActivity(intent);
         }
+        else if (id == R.id.artist_show){
+            Intent intent = new Intent(this, Artist_list.class);
+            startActivity(intent);
+        }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -226,8 +243,8 @@ public class home extends AppCompatActivity
         new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
-        file_place = "whoshot";
-        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+        file_place = "Who's Hot";
+        databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 listView.setAdapter(null);
@@ -263,8 +280,8 @@ public class home extends AppCompatActivity
         new_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
-        file_place = "all_music";
-        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+        file_place = "All Music";
+        databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 listView.setAdapter(null);
@@ -300,8 +317,8 @@ public class home extends AppCompatActivity
         new_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
-        file_place = "whats_new";
-        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+        file_place = "New Music";
+        databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 gridView.setAdapter(null);
@@ -313,7 +330,7 @@ public class home extends AppCompatActivity
                 }
                 Collections.sort(songList, new Comparator<Song>() {
                     public int compare(Song s1, Song s2) {
-                        int res = sCompare(s1.sname,s2.sname);
+                        int res = classCompare(s1,s2);
                         if(res == 1) return -1;
                         else return 1;
                     }
@@ -336,8 +353,8 @@ public class home extends AppCompatActivity
         all_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         gridView.setVisibility(View.GONE);
         listView.setVisibility(View.VISIBLE);
-        file_place = "all_music";
-        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+        file_place = "All Music";
+        databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 listView.setAdapter(null);
@@ -386,22 +403,22 @@ public class home extends AppCompatActivity
     @Override
     protected void onStart() {
         super.onStart();
-        databaseReferencelist.addValueEventListener(new ValueEventListener() {
+        Log.d(TAG, "onStart: "+file_place);
+        databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 gridView.setAdapter(null);
                 songList.clear();
                 Log.d(TAG, "onDataChange driver: done!");
                 for (DataSnapshot ds : dataSnapshot.getChildren()){
-                    //progressBar.setVisibility(View.VISIBLE);
-
                     Song song = ds.getValue(Song.class);
                     songList.add(song);
                 }
                 Collections.sort(songList, new Comparator<Song>() {
                     public int compare(Song s1, Song s2) {
-                        int re = classCompare(s1,s2);
-                        return re;
+                        int res = sCompare(s1.sname,s2.sname);
+                        if(res == 1) return -1;
+                        else return 1;
                     }
                 });
                 Listadapter listadapter = new Listadapter(home.this,songList);
@@ -410,30 +427,30 @@ public class home extends AppCompatActivity
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                //progressBar.setVisibility(View.GONE);
 
             }
         });
-        //progressBar.setVisibility(View.GONE);
 
+        Log.d(TAG, "onStart: artist views1 "+artist_view_str);
 
             listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     // clicked item
                     song_name = songList.get(position).getSname();
+                    artist = songList.get(position).getArtist();
                     intent.putExtra("song_name", song_name);
 
                     Log.d(TAG, "onItemClick: position" + songList.get(position).toString());
                     Log.d(TAG, "check: 0 " + song_name);
-                    databaseReference.addValueEventListener(new ValueEventListener() {
+                    databaseReference.child(file_place).addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
                             view_str = dataSnapshot.child(song_name).child("views").getValue(String.class);
+                            //artist = dataSnapshot.child(song_name).child("artist").getValue(String.class);
                             imgurl = dataSnapshot.child(song_name).child("imageurl").getValue(String.class);
                             view_count = Integer.valueOf(view_str);
-
                             Log.d(TAG, "check: 1 " + view_str);
                             Log.d(TAG, "check: 2 " + String.valueOf(view_count));
                             progressBar.setVisibility(View.VISIBLE);
@@ -445,6 +462,42 @@ public class home extends AppCompatActivity
 
                         }
                     });
+                    Log.d(TAG, "onDataChange: artist 1 "+artist_view_str);
+
+                    if (artist != null && song_name != null){
+                        databaseReference_artist.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                                artist_view_str = dataSnapshot.child(artist).child("view_count").getValue(String.class);
+                                Log.d(TAG, "onDataChange: artist 2 "+artist_view_str);
+
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
+                        Log.d(TAG, "onDataChange: artist 3 "+artist_view_str);
+
+                        databaseReference_artist_song.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                song_artist_view = dataSnapshot.child(artist).child(song_name).child("views").getValue(String.class);
+
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
+                    }
+                    Log.d(TAG, "onStart: artist views2 "+artist_view_str);
+                    Log.d(TAG, "onDataChange: artist 3 "+artist_view_str);
+                    Log.d(TAG, "onDataChange: artist 4 "+artist_view_str);
+
 
                     storageReference.child(song_name).getDownloadUrl().addOnSuccessListener(
                             new OnSuccessListener<Uri>() {
@@ -457,8 +510,17 @@ public class home extends AppCompatActivity
                                     Log.d(TAG, "check: 4 " + String.valueOf(view_count));
                                     view_str = String.valueOf(view_count);
                                     Log.d(TAG, "check: 5 " + view_str);
-                                    databaseReference.child(song_name).child("views").setValue(view_str);
+                                    databaseReference.child(file_place).child(song_name).child("views").setValue(view_str);
+                                    if (artist_view_str != null && song_artist_view != null) {
+                                        Log.d(TAG, "onSuccess: artist view " + artist_view);
+                                        song_artist_view_count = Integer.valueOf(song_artist_view);
+                                        Log.d(TAG, "onDataChange: artist 5 " + artist_view_str);
+                                        artist_view = Integer.valueOf(artist_view_str);
+                                        databaseReference_artist_song.child(artist).child(song_name).child("views").setValue(String.valueOf(song_artist_view_count + 1));
+                                        databaseReference_artist.child(artist).child("view_count").setValue(String.valueOf(artist_view + 1));
+                                    }
                                     //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
+                                    Log.d(TAG, "onSuccess: artist name "+artist);
                                     Log.d(TAG, "check: 6 " + view_str);
                                     intent.putExtra("view", view_str);
                                     intent.putExtra("song_url", musicLink);
@@ -476,20 +538,26 @@ public class home extends AppCompatActivity
 
                 }
             });
-            gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        Log.d(TAG, "onDataChange: artist 6 "+artist_view_str);
+
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     // clicked item
                     song_name = songList.get(position).getSname();
+                    artist = songList.get(position).getArtist();
                     intent.putExtra("song_name", song_name);
                     Log.d(TAG, "onItemClick: position" + songList.get(position).toString());
                     Log.d(TAG, "check: 0 " + song_name);
-                    databaseReference.addValueEventListener(new ValueEventListener() {
+                    Log.d(TAG, "check: 0 artist " + artist);
+
+                    databaseReference.child(file_place).addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
+                            //artist = dataSnapshot.child(song_name).child("artist").getValue(String.class);
                             view_str = dataSnapshot.child(song_name).child("views").getValue(String.class);
-
+                            imgurl = dataSnapshot.child(song_name).child("imageurl").getValue(String.class);
                             view_count = Integer.valueOf(view_str);
 
                             Log.d(TAG, "check: 1 " + view_str);
@@ -503,6 +571,42 @@ public class home extends AppCompatActivity
 
                         }
                     });
+                    Log.d(TAG, "onDataChange: artist 1 "+artist_view_str);
+
+                    if (artist != null && song_name != null){
+                        databaseReference_artist.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                                artist_view_str = dataSnapshot.child(artist).child("view_count").getValue(String.class);
+                                Log.d(TAG, "onDataChange: artist 2 "+artist_view_str);
+
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
+                        Log.d(TAG, "onDataChange: artist 3 "+artist_view_str);
+
+                        databaseReference_artist_song.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                song_artist_view = dataSnapshot.child(artist).child(song_name).child("views").getValue(String.class);
+
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
+                    }
+                    Log.d(TAG, "onStart: artist views2 "+artist_view_str);
+                    Log.d(TAG, "onDataChange: artist 3 "+artist_view_str);
+                    Log.d(TAG, "onDataChange: artist 4 "+artist_view_str);
+
 
                     storageReference.child(song_name).getDownloadUrl().addOnSuccessListener(
                             new OnSuccessListener<Uri>() {
@@ -515,7 +619,15 @@ public class home extends AppCompatActivity
                                     Log.d(TAG, "check: 4 " + String.valueOf(view_count));
                                     view_str = String.valueOf(view_count);
                                     Log.d(TAG, "check: 5 " + view_str);
-                                    databaseReference.child(song_name).child("views").setValue(view_str);
+                                    databaseReference.child(file_place).child(song_name).child("views").setValue(view_str);
+                                    if (artist_view_str != null && song_artist_view != null) {
+                                        Log.d(TAG, "onSuccess: artist view " + artist_view);
+                                        song_artist_view_count = Integer.valueOf(song_artist_view);
+                                        Log.d(TAG, "onDataChange: artist 5 " + artist_view_str);
+                                        artist_view = Integer.valueOf(artist_view_str);
+                                        databaseReference_artist_song.child(artist).child(song_name).child("views").setValue(String.valueOf(song_artist_view_count + 1));
+                                        databaseReference_artist.child(artist).child("view_count").setValue(String.valueOf(artist_view + 1));
+                                    }
                                     //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
                                     Log.d(TAG, "check: 6 " + view_str);
                                     intent.putExtra("view", view_str);

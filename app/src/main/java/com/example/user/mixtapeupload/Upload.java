@@ -31,8 +31,11 @@ import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
@@ -46,7 +49,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 public class Upload extends AppCompatActivity implements View.OnClickListener  {
-    private static final int SELECT_AUDIO = 1;
+    private static final int SELECT_AUDIO = 2;
     private static final int PERMISSION_REQUEST_CODE = 1,result_loead_image=1,PICK_VIDEO_REQUEST=3;
 
     private Button buttonChoose;
@@ -57,8 +60,8 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
 
     //a Uri object to store file path
     private Uri filePath,imagepath;
-    DatabaseReference databaseReference,databaseReference1,databaseReference_whoshot,databaseReference_new,databaseReference_all;
-    private StorageReference storageReference ;
+    DatabaseReference databaseReference,databaseReference1,databaseReference_artist,databaseReference_artist_song;
+    private StorageReference storageReference ,storageReference_img;
     TextView song_name,art_name,time_dur;
     Date date;
     String TAG = "upload detail", type_str;
@@ -66,6 +69,7 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
     long st1,st2,st3;
     ImageView music_icon;
     String ext_img,imageurl;
+    int song_count;
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +84,8 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         music_icon = findViewById(R.id.imageView8);
         //addListenerOnButton();
         databaseReference1 = FirebaseDatabase.getInstance().getReference();
+        databaseReference_artist = FirebaseDatabase.getInstance().getReference().child("artist");
+        databaseReference_artist_song = FirebaseDatabase.getInstance().getReference().child("artist_songs");
         //attaching listener
         buttonChoose.setOnClickListener(this);
         buttonUpload.setOnClickListener(this);
@@ -97,6 +103,7 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         st3 = Integer.parseInt(st3_str);
         Log.d(TAG, "onCreate: "+st1+" "+st2+ " "+ st3);
         storageReference = FirebaseStorage.getInstance().getReference();
+        storageReference_img = FirebaseStorage.getInstance().getReference();
         if (Build.VERSION.SDK_INT >= 23)
         {
             if (checkPermission())
@@ -308,7 +315,7 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
 
                 if (imagepath != null) {
                     Log.d(TAG, "uploadFile: "+imagepath.toString().trim());
-                    StorageReference Sref = storageReference.child(type_str).child(name+"img").child(name);
+                    StorageReference Sref = storageReference_img.child("image").child(name);
                     Sref.putFile(imagepath).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
@@ -320,12 +327,12 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
                             Toast.makeText(getApplicationContext(), "image upload failed!", Toast.LENGTH_SHORT).show();
                         }
                     });
-                    imageurl = type_str + "/" + name +"img/"+ name + "." + ext_img;
+                    imageurl = "image" + "/"+ name + "." + ext_img;
                 }
                 else {
                     imageurl = "empty";
                 }
-                songurl = type_str+"/"+name+"."+ext;
+                songurl = name+"."+ext;
                 uploaddata(secs,mins,songurl,imageurl,artist,name,st1,st2,st3);
                 song_name.setText(name);
                 art_name.setText(artist);
@@ -365,21 +372,73 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         }
     }
 
-    public void uploaddata(Integer s, Integer m, String surl,String iurl, String ar,String nm,long dd, long mm , long yy){
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (artist != null) {
+           /* databaseReference_artist.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.hasChild(artist)){
+                        song_count = dataSnapshot.child(artist).child("song_count").getValue(Integer.class);
+                        song_count = song_count +1;
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });*/
+            databaseReference_artist_song.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.hasChild(artist)){
+                        song_count = (int) dataSnapshot.child(artist).getChildrenCount();
+                        song_count = song_count +1;
+                    }
+
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+        }
+    }
+
+    public void uploaddata(Integer s, Integer m, String surl, String iurl, String ar, String nm, long dd, long mm , long yy){
         String sec,min;
         sec = s.toString();
         min = m.toString();
         if (whoshot.isChecked()){
-            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
-            databaseReference.child("whoshot").child(nm).setValue(song);
+            Artist_class artist_class = new Artist_class(ar,iurl,song_count);
+            databaseReference_artist.child(ar).setValue(artist_class);
+
+            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy,"Who's Hot");
+            databaseReference.child("Who's Hot").child(nm).setValue(song);
+            databaseReference_artist_song.child(ar).child(nm).setValue(song);
         }
         if (newmusic.isChecked()){
-            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
-            databaseReference.child("new").child(nm).setValue(song);
+
+            Artist_class artist_class = new Artist_class(ar,iurl,song_count);
+            databaseReference_artist.child(ar).setValue(artist_class);
+
+            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy,"New Music");
+            databaseReference.child("New Music").child(nm).setValue(song);
+            databaseReference_artist_song.child(ar).child(nm).setValue(song);
+
         }
         if (allmusic.isChecked()){
-            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
-            databaseReference.child("new").child(nm).setValue(song);
+
+            Artist_class artist_class = new Artist_class(ar,iurl,song_count);
+            databaseReference_artist.child(ar).setValue(artist_class);
+
+            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy,"All Music");
+            databaseReference.child("All Music").child(nm).setValue(song);
+            databaseReference_artist_song.child(ar).child(nm).setValue(song);
+
         }
         if (!whoshot.isChecked() && !newmusic.isChecked() && !allmusic.isChecked()){
             Toast.makeText(getApplicationContext(),"Select where to put your music!",Toast.LENGTH_SHORT).show();
@@ -387,6 +446,7 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
 
        /* Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
         databaseReference.child(nm).setValue(song);*/
+       databaseReference_artist.child(ar).child("img_url").setValue(iurl);
     }
     @Override
     public void onClick(View view) {
@@ -424,4 +484,5 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent,result_loead_image);
     }
+
 }

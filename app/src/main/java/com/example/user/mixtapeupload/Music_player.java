@@ -1,8 +1,12 @@
 package com.example.user.mixtapeupload;
 
 
+import android.Manifest;
+import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -18,6 +22,7 @@ import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
@@ -29,6 +34,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -63,6 +69,8 @@ import java.util.concurrent.TimeUnit;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
+import static com.example.user.mixtapeupload.App.CHANNEL_1_ID;
+
 public class Music_player extends AppCompatActivity {
     MediaPlayer mediaPlayer;
     Intent serviceintent;
@@ -72,12 +80,12 @@ public class Music_player extends AppCompatActivity {
     String musicURL,TAG = "music player activity";
     TextView song_name, art_nam, likes_count, views_count;
     String song_name_str,sec_str,min_str;
-    DatabaseReference databaseReference,userdata,commentref;
+    DatabaseReference databaseReference,userdata,commentref,databaseadmin,databaseReference_edit,databaseReference_artist;
     StorageReference storageReference,storageReference1;
     FirebaseUser fuser;
     FirebaseAuth auth;
     String user_email_str;
-    String lover = null;
+    String lover = null,artist_total_like_str;
     ImageView love_icon;
     int sec_int,min_int;
     CheckBox checkBox1,checkBox2;
@@ -87,20 +95,24 @@ public class Music_player extends AppCompatActivity {
     int mediaduration;
     int realTimeDuration;
     int secondPercent = 1;
-    int inc=0;
+    int inc=0,artist_like_count=0,song_like_count;
+    private static final int MY_NOTIFICATION_SERVICE = 2;
     LinearLayout linearLayout;
-    Button button_exit,button_edit;
+    FloatingActionButton button_exit,button_edit;
     NotificationCompat.Builder builder;
 
+
+    public long day_storage,mounth_storage,year_storage;
+
     Handler mHandler = new Handler();
-    String name_str,urist,file_place;
+    String name_str,urist1,file_place,muser_str,song_total_like_str;
     int like_count=0;
     TextView comment_txt;
     ListView clistv;
     List<Comment> cList;
     LinearLayout linearLayout_edit;
     Animation rotate;
-    private NotificationManager mNotifyManager;
+    private NotificationManagerCompat notificationManager;
     private NotificationCompat.Builder mBuilder;
     private static final int PERMISSION_REQUEST_CODE = 1;
     @Override
@@ -108,6 +120,8 @@ public class Music_player extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_music_player);
         songImage = findViewById(R.id.imageView5);
+        auth = FirebaseAuth.getInstance();
+        fuser = auth.getCurrentUser();
         try {
             serviceintent = new Intent(this,MyBackgroundService.class);
 
@@ -126,16 +140,28 @@ public class Music_player extends AppCompatActivity {
         song_name_str = getIntent().getExtras().getString("song_name");
         musicURL = getIntent().getExtras().getString("song_url");
         file_place = getIntent().getExtras().getString("file_place");
+        Log.d(TAG, "onCreate: song name "+song_name_str);
+        Log.d(TAG, "onCreate: music link "+musicURL);
+        Log.d(TAG, "onCreate: file place "+file_place);
         checkBox1 = findViewById(R.id.checkBox6);
         checkBox2 = findViewById(R.id.checkBox5);
         button_edit = findViewById(R.id.floatingActionButton7);
         button_exit = findViewById(R.id.exit_edit);
         linearLayout_edit = findViewById(R.id.edit_layout);
-        if (file_place == "whos_hot"){
+        notificationManager = NotificationManagerCompat.from(this);
+        if (auth.getCurrentUser() != null) {
+
+            String muser_str1 = auth.getCurrentUser().getEmail();
+            muser_str = muser_str1.replace(".com","");
+            Log.d(TAG, "onCreate: " + muser_str);
+            databaseadmin = FirebaseDatabase.getInstance().getReference().child("profile").child(muser_str);
+
+        }
+        if (file_place == "Who's Hot"){
             checkBox1.setText("All Music");
             checkBox2.setText("New Music");
         }
-        else if (file_place == "all_music"){
+        else if (file_place == "All Music"){
             checkBox1.setText("Who's Hot");
             checkBox2.setText("New Music");
         }
@@ -145,9 +171,11 @@ public class Music_player extends AppCompatActivity {
         }
         Log.d(TAG, "onCreate: "+song_name_str);
         databaseReference = FirebaseDatabase.getInstance().getReference().child("audio").child(file_place).child(song_name_str);
+        databaseReference_artist = FirebaseDatabase.getInstance().getReference();
         commentref = FirebaseDatabase.getInstance().getReference().child("audio").child(file_place).child(song_name_str);
+        databaseReference_edit = FirebaseDatabase.getInstance().getReference().child("audio");
         storageReference = FirebaseStorage.getInstance().getReference().child("audio");
-        storageReference1 = FirebaseStorage.getInstance().getReference();
+        storageReference1 = FirebaseStorage.getInstance().getReference().child("image");
         auth = FirebaseAuth.getInstance();
         userdata = FirebaseDatabase.getInstance().getReference().child("profile");
         linearLayout = findViewById(R.id.comment_layout);
@@ -159,7 +187,7 @@ public class Music_player extends AppCompatActivity {
         else {
             linearLayout.setVisibility(View.GONE);
         }
-        rotate = AnimationUtils.loadAnimation(this,R.anim.rotation);
+
         seekBar = findViewById(R.id.seekBar);
         seekBar.setMax(99);
         seekText = findViewById(R.id.seekText);
@@ -232,35 +260,71 @@ public class Music_player extends AppCompatActivity {
             // Do next code
         }
 
-        builder = new NotificationCompat.Builder(this, "music")
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_NOTIFICATION_POLICY)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Permission is not granted
+            // Should we show an explanation?
+            Log.d("notification","not granted");
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_NOTIFICATION_POLICY)) {
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+                Log.d("notification","request permision");
+            } else {
+                // No explanation needed; request the permission
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_NOTIFICATION_POLICY},
+                        MY_NOTIFICATION_SERVICE);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+                Log.d("notification","request permision");
+            }
+        } else {
+            sendOnChannel1();
+        }
+        hide_Keayboard();
+    }
+    public void hide_Keayboard(){
+        View view = this.getCurrentFocus();
+        if (view != null){
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            Log.d(TAG, "performSearch: keyboard hiden!");
+        }
+
+    }
+    public void sendOnChannel1() {
+        // Create an Intent for the activity you want to start
+        Intent resultIntent = new Intent(this, Music_player.class);
+// Create the TaskStackBuilder and add the intent, which inflates the back stack
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addNextIntentWithParentStack(resultIntent);
+// Get the PendingIntent containing the entire back stack
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_1_ID)
                 .setSmallIcon(R.drawable.welcomesrecean)
                 .setContentTitle("MixTape Upload")
                 .setContentText("Now " + song_name_str + " is playing ...")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .setOngoing(true)
+                .build();
 
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-
-// notificationId is a unique int for each notification that you must define
-        notificationManager.notify(0, builder.build());
-
-        new CountDownTimer(realTimeDuration*1000, 1000){
-            @Override
-            public void onFinish() {
-
-            }
-
-            @Override
-            public void onTick(long millisUntilFinished) {
-                songImage.setAnimation(rotate);
-            }
-        }.start();
-
+        notificationManager.notify(1, notification);
     }
+
     public static class DownLoadImageTask extends AsyncTask<String,Void,Bitmap> {
-        CircleImageView songImage;
+        ImageView songImage;
 
 
-        public DownLoadImageTask(CircleImageView songImage){
+        public DownLoadImageTask(ImageView songImage){
             this.songImage = songImage;
         }
 
@@ -339,6 +403,13 @@ public class Music_player extends AppCompatActivity {
                     Log.d("value", "Permission Denied, You cannot use local drive .");
                 }
                 break;
+            case MY_NOTIFICATION_SERVICE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    sendOnChannel1();
+                } else {
+                    Log.d("value", "Permission Denied, You cannot use local drive .");
+                }
+                break;
         }
     }
     private void requestPermission() {
@@ -352,6 +423,27 @@ public class Music_player extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        urist1 = getIntent().getExtras().getString("music_image_url");
+        if(urist1 != "empty" && urist1 != null) {
+            Log.d(TAG, "onDataChange: urist "+urist1);
+            storageReference1.child(urist1).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                @Override
+                public void onSuccess(Uri uri) {
+                    Log.d(TAG, "onSuccess: got url of image!");
+                    new Music_player.DownLoadImageTask(songImage).execute(uri.toString());
+                    Log.d(TAG, "onSuccess: "+uri.toString());
+                    // progressBar1.setVisibility(View.GONE);
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.d(TAG, "onFailure: "+e.getMessage());
+                }
+            });
+        }
+        else {
+            songImage.setImageResource(R.drawable.cd);
+        }
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -364,6 +456,9 @@ public class Music_player extends AppCompatActivity {
                 min_str = dataSnapshot.child("min").getValue(String.class);
                 sec_int = Integer.valueOf(sec_str);
                 min_int = Integer.valueOf(min_str);
+                day_storage = dataSnapshot.child("day").getValue(Long.class);
+                mounth_storage = dataSnapshot.child("mounth").getValue(Long.class);
+                year_storage = dataSnapshot.child("year").getValue(Long.class);
             }
 
             @Override
@@ -371,6 +466,25 @@ public class Music_player extends AppCompatActivity {
 
             }
         });
+        databaseReference_artist.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                /*song_total_like_str = dataSnapshot.child("artist_song").child(art_nam.getText().toString().trim()).child(song_name_str).child("likes").getValue(String.class);
+                song_like_count = Integer.valueOf(song_total_like_str);*/
+                artist_total_like_str = dataSnapshot.child("artist").child(art_nam.getText().toString().trim()).child("total_likes").getValue(String.class);
+                artist_like_count = Integer.valueOf(artist_total_like_str);
+                /*if (artist_total_like_str != null) {
+                    song_like_count = Integer.valueOf(song_total_like_str);
+                    artist_like_count = Integer.valueOf(artist_total_like_str);
+                }*/
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
         if (auth.getCurrentUser() != null) {
             userdata.child(user_email_str).addValueEventListener(new ValueEventListener() {
                 @Override
@@ -414,85 +528,60 @@ public class Music_player extends AppCompatActivity {
                 }
             });
 
-        urist = getIntent().getExtras().getString("music_image_url");
-        if(urist != "empty") {
-            Log.d(TAG, "onDataChange: urist "+urist);
-            storageReference1.child(urist).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+
+
+
+        if (auth.getCurrentUser() != null) {
+            databaseadmin.addValueEventListener(new ValueEventListener() {
                 @Override
-                public void onSuccess(Uri uri) {
-                    Log.d(TAG, "onSuccess: got url of image!");
-                    new Music_player.DownLoadImageTask(songImage).execute(uri.toString());
-                    Log.d(TAG, "onSuccess: "+uri.toString());
-                    // progressBar1.setVisibility(View.GONE);
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.hasChild("admin")){
+                        button_edit.setVisibility(View.VISIBLE);
+                    }
+                    else {
+                        button_edit.setVisibility(View.GONE);
+
+                    }
                 }
-            }).addOnFailureListener(new OnFailureListener() {
+
                 @Override
-                public void onFailure(@NonNull Exception e) {
-                    Log.d(TAG, "onFailure: "+e.getMessage());
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
                 }
             });
+           //   Log.d(TAG, "onDataChange: admin2 " +admin);
+
         }
         else {
-            songImage.setImageResource(R.drawable.cd);
+            button_edit.setVisibility(View.GONE);
         }
-
-        /*ValueEventListener eventListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                String urist = dataSnapshot.child("imageurl").getValue(String.class);
-                Log.d(TAG, "onDataChange: "+urist);
-                if(urist != "empty") {
-                    Log.d(TAG, "onDataChange: urist "+urist);
-                    storageReference1.child(urist).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                        @Override
-                        public void onSuccess(Uri uri) {
-                            Log.d(TAG, "onSuccess: got url of image!");
-                            new profile.DownLoadImageTask(songImage).execute(uri.toString());
-                            Log.d(TAG, "onSuccess: "+uri.toString());
-                           // progressBar1.setVisibility(View.GONE);
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.d(TAG, "onFailure: "+e.getMessage());
-                           // Toast.makeText(getApplicationContext(),"Can not load image!",Toast.LENGTH_LONG).show();
-                            //progressBar1.setVisibility(View.GONE);
-                        }
-                    });
-                }
-                else {
-                    songImage.setImageResource(R.drawable.cd);
-                    //progressBar1.setVisibility(View.GONE);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.d(TAG, "onCancelled: something went wrong!");
-            }
-        };
-        databaseReference.addValueEventListener(eventListener);*/
     }
 
     public void liked(View view){
         if (auth.getCurrentUser() != null) {
+
             if (lover != null) {
                 love_icon.setImageResource(R.drawable.uclickedlove);
                 userdata.child(user_email_str).child("audio").child(song_name.getText().toString().trim()).removeValue();
                 if (like_count != 0) {
                     databaseReference.child("likes").setValue(String.valueOf(like_count - 1));
                     likes_count.setText(String.valueOf(like_count - 1));
+                    databaseReference_artist.child("artist_songs").child(art_nam.getText().toString().trim()).child(song_name_str).child("likes").setValue(String.valueOf(like_count - 1));
+                    databaseReference_artist.child("artist").child(art_nam.getText().toString().trim()).child("total_likes").setValue(String.valueOf(artist_like_count - 1));
 
                 } else {
                     databaseReference.child("likes").setValue(String.valueOf(like_count));
                     likes_count.setText(String.valueOf(like_count));
-                }
+                    databaseReference_artist.child("artist_songs").child(art_nam.getText().toString().trim()).child(song_name_str).child("likes").setValue(String.valueOf(like_count));
+                    databaseReference_artist.child("artist").child(art_nam.getText().toString().trim()).child("total_likes").setValue(String.valueOf(artist_like_count));                }
                 lover = null;
 
             } else {
                 love_icon.setImageResource(R.drawable.loved);
                 userdata.child(user_email_str).child("audio").child(song_name.getText().toString().trim()).setValue("t");
                 databaseReference.child("likes").setValue(String.valueOf(like_count + 1));
+                databaseReference_artist.child("artist_songs").child(art_nam.getText().toString().trim()).child(song_name_str).child("likes").setValue(String.valueOf(like_count + 1));
+                databaseReference_artist.child("artist").child(art_nam.getText().toString().trim()).child("total_likes").setValue(String.valueOf(artist_like_count + 1));
                 lover = "t";
                 likes_count.setText(String.valueOf(like_count + 1));
             }
@@ -529,19 +618,28 @@ public class Music_player extends AppCompatActivity {
             updateSeekbar();
         }
     }
+    Artist_list artist_list = new Artist_list();
     @Override
     public void onBackPressed() {
         // super.onBackPressed(); commented this line in order to disable back press
         if (mediaPlayer.isPlaying()){
             mediaPlayer.stop();
         }
-        Intent intent = new Intent(this,home.class);
+        if (!artist_list.cliked) {
+            Intent intent = new Intent(this, home.class);
+
+            startActivity(intent);
+        }
+        else {
+            Intent intent = new Intent(this,Artist_list.class);
+            startActivity(intent);
+        }
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
 
 // notificationId is a unique int for each notification that you must define
         notificationManager.cancel(0);
-
-        startActivity(intent);
+        notificationManager.cancel(1);
     }
     public void comment(View view){
         if (comment_txt.getText().toString().trim() != null){
@@ -560,20 +658,14 @@ public class Music_player extends AppCompatActivity {
     public void download(View view){
         Log.d("ok", "download: 1");
         final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setTitle("Uploading");
+        progressDialog.setTitle("Downloading...");
         progressDialog.show();
         //notificationDownload();
         File rootPath = new File(Environment.getExternalStorageDirectory(), "MixTape");
-        //File rootPath = new File(this.getFilesDir()," mix");
         if(!rootPath.exists()) {
             rootPath.mkdirs();
         }
-       /* File localFile = null;
-        try {
-            localFile = File.createTempFile("Audio", "mp3");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
+
         final File localFile = new File(rootPath,song_name_str+".mp3");
 
         storageReference.child(song_name_str).getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
@@ -604,13 +696,45 @@ public class Music_player extends AppCompatActivity {
         button_edit.animate().alpha(1);
     }
     public void addmusic(View view){
-
+        if (checkBox1.isChecked()){
+            Song song = new Song(sec_str,min_str,musicURL,urist1,art_nam.getText().toString().trim(),likes_count.getText().toString().trim(),views_count.getText().toString().trim(),song_name_str,day_storage,mounth_storage,year_storage,checkBox1.getText().toString().trim());
+            databaseReference_edit.child(checkBox1.getText().toString().trim()).child(song_name_str).setValue(song);
+        }
+        if (checkBox2.isChecked()){
+            Song song = new Song(sec_str,min_str,musicURL,urist1,art_nam.getText().toString().trim(),likes_count.getText().toString().trim(),views_count.getText().toString().trim(),song_name_str,day_storage,mounth_storage,year_storage,checkBox2.getText().toString().trim());
+            databaseReference.child(checkBox2.getText().toString().trim()).child(song_name_str).setValue(song);
+        }
+        if (!checkBox2.isChecked() && !checkBox1.isChecked()){
+            Toast.makeText(getApplicationContext(),"please select a file to add music!",Toast.LENGTH_SHORT).show();
+        }
     }
     public void delete(View view){
         final Intent intent = new Intent(this,home.class);
-        auth.signOut();
-        databaseReference.removeValue();
-        storageReference.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+        //auth.signOut();
+        databaseReference_edit.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.child("audio").child("All Music").hasChild(song_name_str)){
+                    databaseReference_edit.child("audio").child("All Music").child(song_name_str).removeValue();
+
+                }
+                if (dataSnapshot.child("audio").child("New Music").hasChild(song_name_str)){
+                    databaseReference_edit.child("audio").child("New Music").child(song_name_str).removeValue();
+                }
+                if (dataSnapshot.child("audio").child("Who's Hot").hasChild(song_name_str)){
+                    databaseReference_edit.child("audio").child("Who's Hot").child(song_name_str).removeValue();
+                }
+                databaseReference_artist.child("artist_songs").child(art_nam.getText().toString().trim()).child(song_name_str).removeValue();
+                Toast.makeText(getApplicationContext(),"The Audio song has deleted!",Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+        storageReference1.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
                 Toast.makeText(getApplicationContext(),"deactivated!",Toast.LENGTH_SHORT).show();

@@ -14,6 +14,12 @@
 
         </item>
         <item
+            android:id="@+id/artist_show"
+            android:icon="@android:drawable/ic_btn_speak_now"
+            android:title="Artist List">
+
+        </item>
+        <item
             android:id="@+id/nav_gallery"
             android:icon="@android:drawable/ic_lock_power_off"
             android:title="Sign out!" />
