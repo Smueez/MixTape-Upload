@@ -76,7 +76,7 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
     long song_count = 0;
     String song_count_str,image_url_artis;
     EditText song_edit_name;
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)//api selector
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
