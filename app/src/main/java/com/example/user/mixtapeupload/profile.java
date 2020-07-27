@@ -6,11 +6,14 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -42,10 +45,16 @@ public class profile extends AppCompatActivity {
     TextView textView1;
     ProgressBar progressBar1;
     TextView songsL,videoL;
+    EditText editText_change_name;
+    LinearLayout linearLayout_edit;
+    FloatingActionButton floatingActionButton;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
+        editText_change_name = findViewById(R.id.editText3);
+        linearLayout_edit = findViewById(R.id.edit_layout);
+        floatingActionButton = findViewById(R.id.floatingActionButton5);
         imageView = findViewById(R.id.profile_image);
         songsL = findViewById(R.id.lovedsong);
         videoL = findViewById(R.id.lovedvid);
@@ -140,6 +149,7 @@ public class profile extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
                 textView1.setText(dataSnapshot.getValue(String.class));
+                editText_change_name.setText(dataSnapshot.getValue(String.class));
             }
 
             @Override
@@ -192,5 +202,20 @@ public class profile extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
+    public void change_name(View view){
+        String edit_name_text = editText_change_name.getText().toString().trim();
+        if (edit_name_text != null){
+            data.child("name").setValue(edit_name_text);
+            linearLayout_edit.setVisibility(View.GONE);
+            floatingActionButton.setVisibility(View.VISIBLE);
+        }
+        else {
+            Toast.makeText(getApplicationContext(),"Name can not be empty!",Toast.LENGTH_SHORT).show();
+        }
+    }
+    public void edit(View view){
+        linearLayout_edit.setVisibility(View.VISIBLE);
+        floatingActionButton.setVisibility(View.GONE);
     }
 }

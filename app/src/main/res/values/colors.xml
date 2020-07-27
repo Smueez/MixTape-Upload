@@ -3,9 +3,10 @@
     <color name="colorPrimary">#191a23</color>
     <color name="clickedPrimary">#575866</color>
     <color name="colorPrimaryDark">#303F9F</color>
-    <color name="colorAccent">#eaff00</color>
+    <color name="colorAccent">#00ff1e</color>
     <color name="extra1">#d3adda</color>
-    <color name="extra2">#79e172</color>
+    <color name="extra2">#79E172</color>
     <color name="extra3">#e4c916</color>
     <color name="extra4">#383eea</color>
+    <color name="extra5">#ee181a2d</color>
 </resources>

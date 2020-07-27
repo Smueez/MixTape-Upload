@@ -1,6 +1,7 @@
 package com.example.user.mixtapeupload;
 
 
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.Intent;
 
@@ -23,8 +24,10 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -55,7 +58,7 @@ import java.util.concurrent.Semaphore;
 
 public class home extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
-    String view_str,imgurl;
+    String view_str,imgurl,return_place;
     Uri filePath;
    StorageReference storageReference;
     private static final int SELECT_AUDIO = 2;
@@ -77,8 +80,9 @@ public class home extends AppCompatActivity
     ImageView imageView1;
     int artist_view;
     String song_artist_view;
-    int song_artist_view_count;
+    int song_artist_view_count,position_item = -1;
     final Semaphore semaphore = new Semaphore(0);
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,6 +100,17 @@ public class home extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+        try{
+            return_place = getIntent().getExtras().getString("return_type");
+        } catch (Exception e){
+            e.printStackTrace();
+            Log.d(TAG, "onCreate: exception "+e.getMessage().toString());
+        }
+
+        if (return_place == null){
+            return_place = "New Music";
+        }
+        Log.d(TAG, "onCreate: return string "+ return_place);
         auth = FirebaseAuth.getInstance();
         if (auth.getCurrentUser() != null) {
 
@@ -134,7 +149,6 @@ public class home extends AppCompatActivity
         new_bttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
-
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -244,6 +258,7 @@ public class home extends AppCompatActivity
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         file_place = "Who's Hot";
+        return_place = "Who's Hot";
         databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -281,6 +296,7 @@ public class home extends AppCompatActivity
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.clickedPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         file_place = "All Music";
+        return_place = "Most Viewed";
         databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -318,6 +334,7 @@ public class home extends AppCompatActivity
         topViewbttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         all_bttn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         file_place = "New Music";
+        return_place = "New Music";
         databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -354,6 +371,7 @@ public class home extends AppCompatActivity
         gridView.setVisibility(View.GONE);
         listView.setVisibility(View.VISIBLE);
         file_place = "All Music";
+        return_place = "All Music";
         databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -403,7 +421,7 @@ public class home extends AppCompatActivity
     @Override
     protected void onStart() {
         super.onStart();
-        Log.d(TAG, "onStart: "+file_place);
+        Log.d(TAG, "onStart: " + file_place);
         databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -416,7 +434,7 @@ public class home extends AppCompatActivity
                 }
                 Collections.sort(songList, new Comparator<Song>() {
                     public int compare(Song s1, Song s2) {
-                        int res = sCompare(s1.sname,s2.sname);
+                        int res = classCompare(s1,s2);
                         if(res == 1) return -1;
                         else return 1;
                     }
@@ -430,13 +448,18 @@ public class home extends AppCompatActivity
 
             }
         });
-
         Log.d(TAG, "onStart: artist views1 "+artist_view_str);
 
             listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     // clicked item
+                    if (position_item == -1){
+                        position_item = position;
+                    }
+                    else {
+                       return;
+                    }
                     song_name = songList.get(position).getSname();
                     artist = songList.get(position).getArtist();
                     intent.putExtra("song_name", song_name);
@@ -494,7 +517,7 @@ public class home extends AppCompatActivity
                             }
                         });
                     }
-                    Log.d(TAG, "onStart: artist views2 "+artist_view_str);
+
                     Log.d(TAG, "onDataChange: artist 3 "+artist_view_str);
                     Log.d(TAG, "onDataChange: artist 4 "+artist_view_str);
 
@@ -522,11 +545,14 @@ public class home extends AppCompatActivity
                                     //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
                                     Log.d(TAG, "onSuccess: artist name "+artist);
                                     Log.d(TAG, "check: 6 " + view_str);
+                                    intent.putExtra("artist_view",artist_view_str);
+                                    intent.putExtra("artist_song_view",song_artist_view);
                                     intent.putExtra("view", view_str);
                                     intent.putExtra("song_url", musicLink);
                                     intent.putExtra("type",file_type);
                                     intent.putExtra("music_image_url",imgurl);
                                     intent.putExtra("file_place",file_place);
+                                    intent.putExtra("return_place_home",return_place);
                                     startActivity(intent);
                                 }
                             }).addOnFailureListener(new OnFailureListener() {
@@ -544,6 +570,12 @@ public class home extends AppCompatActivity
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     // clicked item
+                    if (position_item == -1){
+                        position_item = position;
+                    }
+                    else {
+                        return;
+                    }
                     song_name = songList.get(position).getSname();
                     artist = songList.get(position).getArtist();
                     intent.putExtra("song_name", song_name);

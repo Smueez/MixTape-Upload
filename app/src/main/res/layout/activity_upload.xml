@@ -30,6 +30,7 @@
         android:layout_centerHorizontal="true"
         android:textSize="30dp" />
 
+
     <TextView
         android:id="@+id/textView6"
         android:layout_width="wrap_content"
@@ -121,7 +122,9 @@
         android:layout_below="@+id/textView6"
         android:layout_centerHorizontal="true"
         android:ems="10"
-        android:inputType="textPersonName" />
+        android:hint="Artist Name"
+        android:inputType="textPersonName"
+        android:gravity="center"/>
 
     <CheckBox
         android:id="@+id/checkBox"
@@ -148,6 +151,18 @@
         android:layout_centerHorizontal="true"
         android:checked="true"
         android:text="All Music" />
+
+    <EditText
+        android:id="@+id/editText2"
+        android:layout_width="342dp"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/textView5"
+        android:layout_centerHorizontal="true"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text=""
+        android:hint="Single Song Name"
+        android:gravity="center"/>
 
 
 </RelativeLayout>

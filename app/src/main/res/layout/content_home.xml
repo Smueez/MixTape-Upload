@@ -72,7 +72,8 @@
             android:layout_weight="1"
             android:drawSelectorOnTop="false"
             android:visibility="gone"
-            android:listSelector="#02e7fc"/>
+            android:listSelector="#02e7fc"
+            android:choiceMode="singleChoice"/>
 
         <GridView
             android:layout_width="match_parent"
@@ -82,7 +83,7 @@
             android:listSelector="#02e7fc"
             android:visibility="visible"
             android:id="@+id/gridview"
-            />
+            android:choiceMode="singleChoice"/>
 
     </LinearLayout>
 

@@ -45,7 +45,8 @@
         <activity
             android:name=".Music_player"
             android:label="@string/title_activity_home"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden"/>
 
         <service android:name=".MyBackgroundService" />
 
@@ -64,7 +65,11 @@
             android:label="@string/title_activity_home"
             android:parentActivityName=".home"
             android:screenOrientation="portrait" />
-        <activity android:name=".VideoList" />
+        <activity android:name=".VideoList"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:parentActivityName=".home"
+            android:screenOrientation="portrait"
+            android:label="@string/title_activity_home" />
         <activity
             android:name=".Artist_list"
             android:label="@string/title_activity_home"

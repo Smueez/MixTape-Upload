@@ -30,7 +30,8 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="64dp"
-        android:listSelector="#02e7fc"/>
+        android:listSelector="#02e7fc"
+        android:choiceMode="singleChoice"/>
 
     <TextView
         android:id="@+id/textView22"

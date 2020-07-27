@@ -87,7 +87,7 @@ public class Listadapter extends ArrayAdapter<Song> {
         LayoutInflater inflater = context.getLayoutInflater();
         View mylistview = inflater.inflate(R.layout.list_song,null,true);
 
-        StorageReference storageReference1 = FirebaseStorage.getInstance().getReference().child("image");
+        StorageReference storageReference1 = FirebaseStorage.getInstance().getReference();
 
         TextView songName = mylistview.findViewById(R.id.song);
         TextView artist = mylistview.findViewById(R.id.artist);
@@ -103,7 +103,7 @@ public class Listadapter extends ArrayAdapter<Song> {
         list_img = song1.getImageurl();
 
         if (list_img != "empty"){
-            storageReference1.child(list_img).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+            storageReference1.child("image").child(song1.getSname()).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                 @Override
                 public void onSuccess(Uri uri) {
                     Log.d(TAG, "onSuccess: got url of image!");

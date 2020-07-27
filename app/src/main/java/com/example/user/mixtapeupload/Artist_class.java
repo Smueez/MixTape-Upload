@@ -2,7 +2,7 @@ package com.example.user.mixtapeupload;
 public class Artist_class {
 
     String artist_name;
-    int song_count;
+    String song_count;
     String img_url;
     String total_likes;
     String view_count;
@@ -10,12 +10,12 @@ public class Artist_class {
     Artist_class(){
 
     }
-    Artist_class(String artist_name,String img_url,int song_count){
+    Artist_class(String artist_name,String img_url,String song_count,String total_likes,String view_count){
         this.artist_name = artist_name;
         this.img_url = img_url;
         this.song_count = song_count;
-        this.total_likes = "0";
-        this.view_count = "0";
+        this.total_likes = total_likes;
+        this.view_count = view_count;
     }
 
     public String getArtist_name() {
@@ -26,7 +26,7 @@ public class Artist_class {
         return img_url;
     }
 
-    public int getSong_count() {
+    public String getSong_count() {
         return song_count;
     }
 

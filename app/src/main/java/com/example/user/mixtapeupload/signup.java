@@ -71,23 +71,7 @@ public class signup extends AppCompatActivity {
     }
     public void addListenerOnButton(View view) {
 
-        /*radioSexGroup.setOnClickListener(new View.OnClickListener() {
 
-            @Override
-            public void onClick(View v) {
-
-                // get selected radio button from radioGroup
-                int selectedId = radioSexGroup.getCheckedRadioButtonId();
-
-                // find the radiobutton by returned id
-                radioButton =  findViewById(selectedId);
-
-                gender_str = radioButton.getText().toString().trim();
-                Log.d(TAG, "onClick: "+radioButton.getText().toString().trim());
-
-            }
-
-        });*/
         boolean checked = ((RadioButton) view).isChecked();
 
         // Check which radio button was clicked

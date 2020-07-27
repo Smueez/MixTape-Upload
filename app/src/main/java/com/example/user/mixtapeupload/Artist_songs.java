@@ -43,6 +43,7 @@ public class Artist_songs extends AppCompatActivity {
     RelativeLayout listview_layout;
     int view_count;
     ProgressBar progressBar;
+    int presed = -1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,6 +99,12 @@ public class Artist_songs extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // clicked item
+                if (presed == -1){
+                    presed = position;
+                }
+                else {
+                    return;
+                }
                 song_name = songList1.get(position).getSname();
                 Log.d(TAG, "onItemClick: song name "+song_name);
                 artist_name_str = songList1.get(position).getArtist();

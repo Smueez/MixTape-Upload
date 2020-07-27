@@ -27,6 +27,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -42,6 +43,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.MediaController;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -64,6 +67,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -72,6 +77,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 import static com.example.user.mixtapeupload.App.CHANNEL_1_ID;
 
 public class Music_player extends AppCompatActivity {
+    int position_item = -1;
     MediaPlayer mediaPlayer;
     Intent serviceintent;
     boolean playmusicbool = true;
@@ -80,7 +86,7 @@ public class Music_player extends AppCompatActivity {
     String musicURL,TAG = "music player activity";
     TextView song_name, art_nam, likes_count, views_count;
     String song_name_str,sec_str,min_str;
-    DatabaseReference databaseReference,userdata,commentref,databaseadmin,databaseReference_edit,databaseReference_artist;
+    DatabaseReference databaseReference,userdata,commentref,databaseadmin,databaseReference_edit,databaseReference_artist,databaseReferencelist,databaseReference_artist_song,databaseReference_songs;
     StorageReference storageReference,storageReference1;
     FirebaseUser fuser;
     FirebaseAuth auth;
@@ -95,33 +101,59 @@ public class Music_player extends AppCompatActivity {
     int mediaduration;
     int realTimeDuration;
     int secondPercent = 1;
-    int inc=0,artist_like_count=0,song_like_count;
+    int inc=0,artist_like_count=0;
     private static final int MY_NOTIFICATION_SERVICE = 2;
     LinearLayout linearLayout;
     FloatingActionButton button_exit,button_edit;
     NotificationCompat.Builder builder;
-
-
+    String artist_view,artist_view_song;
+    RelativeLayout list_of_songs,list_of_artist_songs;
     public long day_storage,mounth_storage,year_storage;
 
     Handler mHandler = new Handler();
-    String name_str,urist1,file_place,muser_str,song_total_like_str;
+    String name_str,urist1,file_place,muser_str;
     int like_count=0;
     TextView comment_txt;
     ListView clistv;
     List<Comment> cList;
     LinearLayout linearLayout_edit;
-    Animation rotate;
+    int view_count_ar;
+    String return_type;
+    Animation animation2,animation1;
     private NotificationManagerCompat notificationManager;
     private NotificationCompat.Builder mBuilder;
     private static final int PERMISSION_REQUEST_CODE = 1;
+    ListView listView_songs,listView_artist_songs;
+    List<Song> song_list;
+    List<Song> artist_song_list;
+    TextView textView_type;
+    String song_name_sc, view_str, artist_song_sc,imgurl,artist_view_str,musicLink,song_artist_view;
+    int view_count,song_artist_view_count,artist_view_count;
+    Intent intent1;
+    ProgressBar progressBar;
+    TextView artist_name;
+    boolean artist_pressed = false;
+    ProgressBar progressBar1;
+    String song_name_ar,artist_name_str, view_str_ar,imgurl_ar,file_place_ar,musicLink_ar,song_artist_view_ar,artist_view_str_ar,imgurl_dlt,songurl_dlt;
+    int artist_song = -1;
+    int artist_view_int, artist_song_view_int;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_music_player);
+        list_of_artist_songs = findViewById(R.id.song_list_artis);
+        artist_song_list = new ArrayList<>();
+        listView_artist_songs = findViewById(R.id.song_listview_artis);
         songImage = findViewById(R.id.imageView5);
+        listView_songs = findViewById(R.id.song_listview);
+        song_list = new ArrayList<>();
         auth = FirebaseAuth.getInstance();
         fuser = auth.getCurrentUser();
+        list_of_songs = findViewById(R.id.song_list_sc);
+        artist_name = findViewById(R.id.textView232);
+        animation2 = AnimationUtils.loadAnimation(this,R.anim.downtoup);
+        animation1 = AnimationUtils.loadAnimation(this,R.anim.hide);
+        progressBar1 = findViewById(R.id.progressBar6);
         try {
             serviceintent = new Intent(this,MyBackgroundService.class);
 
@@ -131,18 +163,35 @@ public class Music_player extends AppCompatActivity {
         clistv = findViewById(R.id.commentList);
         cList = new ArrayList<>();
         comment_txt = findViewById(R.id.editText);
-       // seekBar = findViewById(R.id.seekBar);
+        progressBar = findViewById(R.id.progressBar5);
         song_name = findViewById(R.id.song_name_m);
         art_nam = findViewById(R.id.artist_name_m);
         playbttn = findViewById(R.id.imageView7);
         likes_count = findViewById(R.id.textView3);
         views_count = findViewById(R.id.textView4);
+        databaseReference_artist = FirebaseDatabase.getInstance().getReference();
+        databaseReferencelist = FirebaseDatabase.getInstance().getReference().child("audio");
+        databaseReference_artist_song = FirebaseDatabase.getInstance().getReference().child("artist_songs");
+        databaseReference_songs = FirebaseDatabase.getInstance().getReference().child("audio");
         song_name_str = getIntent().getExtras().getString("song_name");
         musicURL = getIntent().getExtras().getString("song_url");
         file_place = getIntent().getExtras().getString("file_place");
+        return_type = getIntent().getExtras().getString("return_place_home");
+         artist_view = getIntent().getExtras().getString("artist_view");
+        artist_view_song = getIntent().getExtras().getString("artist_song_view");
+        textView_type = findViewById(R.id.textView23);
+        textView_type.setText(file_place);
+
+
+
+        intent1 = new Intent(this,Music_player.class);
+
+        //databaseReference_artist.child("artist").child(art_nam.getText().toString().trim()).child("view_count").setValue(artist_view);
+       // databaseReference_artist.child("artist_songs").child(art_nam.getText().toString().trim()).child(song_name_str).child("views").setValue(artist_view_song);
         Log.d(TAG, "onCreate: song name "+song_name_str);
         Log.d(TAG, "onCreate: music link "+musicURL);
         Log.d(TAG, "onCreate: file place "+file_place);
+        Log.d(TAG, "onCreate: file return place "+return_type);
         checkBox1 = findViewById(R.id.checkBox6);
         checkBox2 = findViewById(R.id.checkBox5);
         button_edit = findViewById(R.id.floatingActionButton7);
@@ -171,11 +220,11 @@ public class Music_player extends AppCompatActivity {
         }
         Log.d(TAG, "onCreate: "+song_name_str);
         databaseReference = FirebaseDatabase.getInstance().getReference().child("audio").child(file_place).child(song_name_str);
-        databaseReference_artist = FirebaseDatabase.getInstance().getReference();
+
         commentref = FirebaseDatabase.getInstance().getReference().child("audio").child(file_place).child(song_name_str);
         databaseReference_edit = FirebaseDatabase.getInstance().getReference().child("audio");
-        storageReference = FirebaseStorage.getInstance().getReference().child("audio");
-        storageReference1 = FirebaseStorage.getInstance().getReference().child("image");
+        storageReference = FirebaseStorage.getInstance().getReference();
+        storageReference1 = FirebaseStorage.getInstance().getReference();
         auth = FirebaseAuth.getInstance();
         userdata = FirebaseDatabase.getInstance().getReference().child("profile");
         linearLayout = findViewById(R.id.comment_layout);
@@ -247,7 +296,7 @@ public class Music_player extends AppCompatActivity {
             {
                 // Code for above or equal 23 API Oriented Device
                 // Your Permission granted already .Do next code
-                Toast.makeText(getApplicationContext(),"check permission ok",Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(),"check permission ok",Toast.LENGTH_SHORT).show();
             } else {
                 requestPermission(); // Code for permission
 
@@ -288,6 +337,7 @@ public class Music_player extends AppCompatActivity {
             sendOnChannel1();
         }
         hide_Keayboard();
+
     }
     public void hide_Keayboard(){
         View view = this.getCurrentFocus();
@@ -420,13 +470,36 @@ public class Music_player extends AppCompatActivity {
             ActivityCompat.requestPermissions(Music_player.this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
         }
     }
+    String song_count_str;
+    int song_count;
     @Override
     protected void onStart() {
         super.onStart();
+        if (artist_view != null && artist_view_song != null){
+            artist_view_int = Integer.valueOf(artist_view);
+            artist_view_int = artist_view_int + 1;
+            artist_view = String.valueOf(artist_view_int);
+            artist_song_view_int = Integer.valueOf(artist_view_song);
+            artist_song_view_int = artist_song_view_int + 1;
+            artist_view_song = String.valueOf(artist_song_view_int);
+
+        }
+
+        databaseReference_artist.child("artist").child(art_nam.getText().toString().trim()).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                song_count_str = dataSnapshot.child("song_count").getValue(String.class);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
         urist1 = getIntent().getExtras().getString("music_image_url");
         if(urist1 != "empty" && urist1 != null) {
             Log.d(TAG, "onDataChange: urist "+urist1);
-            storageReference1.child(urist1).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+            storageReference1.child("image").child(song_name_str).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                 @Override
                 public void onSuccess(Uri uri) {
                     Log.d(TAG, "onSuccess: got url of image!");
@@ -437,6 +510,7 @@ public class Music_player extends AppCompatActivity {
             }).addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception e) {
+                    Log.d(TAG, "onFailure: urist1  "+urist1);
                     Log.d(TAG, "onFailure: "+e.getMessage());
                 }
             });
@@ -449,6 +523,8 @@ public class Music_player extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 song_name.setText(dataSnapshot.child("sname").getValue(String.class));
                 art_nam.setText(dataSnapshot.child("artist").getValue(String.class));
+                artist_name.setText(dataSnapshot.child("artist").getValue(String.class));
+                artist_name_str = art_nam.getText().toString().trim();
                 likes_count.setText(dataSnapshot.child("likes").getValue(String.class));
                 like_count =  Integer.valueOf(likes_count.getText().toString().trim());
                 views_count.setText(dataSnapshot.child("views").getValue(String.class));
@@ -459,6 +535,8 @@ public class Music_player extends AppCompatActivity {
                 day_storage = dataSnapshot.child("day").getValue(Long.class);
                 mounth_storage = dataSnapshot.child("mounth").getValue(Long.class);
                 year_storage = dataSnapshot.child("year").getValue(Long.class);
+                songurl_dlt = dataSnapshot.child("url").getValue(String.class);
+                imgurl_dlt = dataSnapshot.child("imageurl").getValue(String.class);
             }
 
             @Override
@@ -472,7 +550,8 @@ public class Music_player extends AppCompatActivity {
                 /*song_total_like_str = dataSnapshot.child("artist_song").child(art_nam.getText().toString().trim()).child(song_name_str).child("likes").getValue(String.class);
                 song_like_count = Integer.valueOf(song_total_like_str);*/
                 artist_total_like_str = dataSnapshot.child("artist").child(art_nam.getText().toString().trim()).child("total_likes").getValue(String.class);
-                artist_like_count = Integer.valueOf(artist_total_like_str);
+
+                if (artist_total_like_str != null){artist_like_count = Integer.valueOf(artist_total_like_str);}
                 /*if (artist_total_like_str != null) {
                     song_like_count = Integer.valueOf(song_total_like_str);
                     artist_like_count = Integer.valueOf(artist_total_like_str);
@@ -555,8 +634,339 @@ public class Music_player extends AppCompatActivity {
         else {
             button_edit.setVisibility(View.GONE);
         }
-    }
+        if (artist_name_str != null) {
+            databaseReference_artist.child("artist").child(artist_name_str).child("view_count").setValue(artist_view);
+            databaseReference_artist.child("artist_songs").child(artist_name_str).child(song_name_str).child("views").setValue(artist_view_song);
+        }
+        databaseReferencelist.child(file_place).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                listView_songs.setAdapter(null);
+                song_list.clear();
+                Log.d(TAG, "onDataChange driver: done!");
+                for (DataSnapshot ds : dataSnapshot.getChildren()){
+                    Song song = ds.getValue(Song.class);
+                    song_list.add(song);
+                }
+                Collections.sort(song_list, new Comparator<Song>() {
+                    public int compare(Song s1, Song s2) {
+                        int res = sCompare(s1.likes,s2.likes);
+                        if(res == 1) return -1;
+                        else return 1;
+                    }
+                });
+                Listadapter listadapter = new Listadapter(Music_player.this,song_list);
+                listView_songs.setAdapter(listadapter);
+            }
 
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+
+
+        listView_songs.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // clicked item
+                if (mediaPlayer.isPlaying()){
+                    mediaPlayer.stop();
+                }
+                if (position_item == -1){
+                    position_item = position;
+                }
+                else {
+                    return;
+                }
+                song_name_sc = song_list.get(position).getSname();
+                artist_song_sc = song_list.get(position).getArtist();
+                intent1.putExtra("song_name", song_name_sc);
+
+                Log.d(TAG, "onItemClick: position" + song_list.get(position).toString());
+                Log.d(TAG, "check: 0 " + song_name);
+                databaseReference_songs.child(file_place).addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                        view_str = dataSnapshot.child(song_name_sc).child("views").getValue(String.class);
+                        //artist = dataSnapshot.child(song_name).child("artist").getValue(String.class);
+                        imgurl = dataSnapshot.child(song_name_sc).child("imageurl").getValue(String.class);
+                        if (view_str != null){
+                            view_count = Integer.valueOf(view_str);
+                        }
+                        Log.d(TAG, "check: 1 " + view_str);
+                        Log.d(TAG, "check: 2 " + String.valueOf(view_count));
+                        progressBar.setVisibility(View.VISIBLE);
+
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+                Log.d(TAG, "onDataChange: artist 1 "+artist_view_str);
+
+                if (artist_song_sc != null && song_name_sc != null){
+                    databaseReference_artist.addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                            artist_view_str = dataSnapshot.child("artist").child(artist_song_sc).child("view_count").getValue(String.class);
+                            Log.d(TAG, "onDataChange: artist 2 "+artist_view_str);
+
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
+                    Log.d(TAG, "onDataChange: artist 3 "+artist_view_str);
+
+                    databaseReference_artist_song.addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            song_artist_view = dataSnapshot.child(artist_song_sc).child(song_name_sc).child("views").getValue(String.class);
+
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
+                }
+
+                Log.d(TAG, "onDataChange: artist 3 "+artist_view_str);
+                Log.d(TAG, "onDataChange: artist 4 "+artist_view_str);
+
+
+                storageReference.child("audio").child(song_name_sc).getDownloadUrl().addOnSuccessListener(
+                        new OnSuccessListener<Uri>() {
+                            @Override
+                            public void onSuccess(Uri uri) {
+                                musicLink = uri.toString();
+                                Log.d(TAG, "onSuccess: " + musicLink);
+                                Log.d(TAG, "check: 3 " + String.valueOf(view_count));
+                                view_count = view_count + 1;
+                                Log.d(TAG, "check: 4 " + String.valueOf(view_count));
+                                view_str = String.valueOf(view_count);
+                                Log.d(TAG, "check: 5 " + view_str);
+                                databaseReference_artist.child("audio").child(file_place).child(song_name_sc).child("views").setValue(view_str);
+                                if (artist_view_str != null && song_artist_view != null) {
+                                    Log.d(TAG, "onSuccess: artist view " + artist_view);
+                                    song_artist_view_count = Integer.valueOf(song_artist_view);
+                                    Log.d(TAG, "onDataChange: artist 5 " + artist_view_str);
+                                    artist_view_count= Integer.valueOf(artist_view_str);
+                                    databaseReference_artist_song.child(artist_song_sc).child(song_name_sc).child("views").setValue(String.valueOf(song_artist_view_count + 1));
+                                    databaseReference_artist.child("artist").child(artist_song_sc).child("view_count").setValue(String.valueOf(artist_view + 1));
+                                }
+                                //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
+                                Log.d(TAG, "onSuccess: artist name "+artist_song_sc);
+                                Log.d(TAG, "check: 6 " + view_str);
+                                intent1.putExtra("artist_view",artist_view_str);
+                                intent1.putExtra("artist_song_view",song_artist_view);
+                                intent1.putExtra("view", view_str);
+                                intent1.putExtra("song_url", musicLink);
+                                intent1.putExtra("type",file_place);
+                                intent1.putExtra("music_image_url",imgurl);
+                                intent1.putExtra("file_place",file_place);
+                                //intent1.putExtra("return_place_home",return_place);
+                                startActivity(intent1);
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(getApplicationContext(), "Something went wrong!", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+            }
+        });
+        Log.d(TAG, "onDataChange: artist 6 "+artist_view_str);
+
+
+        listView_artist_songs.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // clicked item
+                if (artist_song == -1) {
+                    artist_song = position;
+                }
+                else {
+                    return;
+                }
+                if (mediaPlayer.isPlaying()){
+                    mediaPlayer.stop();
+                }
+                song_name_ar = artist_song_list.get(position).getSname();
+                Log.d(TAG, "onItemClick: song name artist "+song_name_ar);
+                artist_name_str = artist_song_list.get(position).getArtist();
+                intent1.putExtra("song_name", song_name_ar);
+
+                progressBar1.setVisibility(View.VISIBLE);
+
+                Log.d(TAG, "onItemClick: position" + artist_song_list.get(position).toString());
+                Log.d(TAG, "check: 0 " + song_name_ar);
+                databaseReference_songs.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.child("All Music").hasChild(song_name_ar)){
+                            file_place_ar = "All Music";
+                            Log.d(TAG, "onDataChange1: "+file_place_ar);
+                            databaseReference_songs.child(file_place_ar).child(song_name_ar).addValueEventListener(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                                    view_str_ar = dataSnapshot.child("views").getValue(String.class);
+                                    view_count_ar = Integer.valueOf(view_str_ar);
+                                    imgurl_ar = dataSnapshot.child("imageurl").getValue(String.class);
+                                    //file_place = dataSnapshot.child("fileplace").getValue(String.class);
+
+
+                                    Log.d(TAG, "check: 1 " + view_str_ar);
+                                    Log.d(TAG, "check: 2 " + String.valueOf(view_count_ar));
+                                    //progressBar.setVisibility(View.VISIBLE);
+                                    progressBar1.setVisibility(View.GONE);
+
+                                }
+
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                }
+                            });
+                        }
+                        else if (dataSnapshot.child("New Music").hasChild(song_name_ar)){
+                            file_place_ar = "New Music";
+                            Log.d(TAG, "onDataChange2: "+file_place_ar);
+                            databaseReference_songs.child(file_place_ar).child(song_name_ar).addValueEventListener(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                                    view_str_ar = dataSnapshot.child("views").getValue(String.class);
+                                    view_count_ar = Integer.valueOf(view_str_ar);
+                                    imgurl_ar = dataSnapshot.child("imageurl").getValue(String.class);
+                                    //file_place = dataSnapshot.child("fileplace").getValue(String.class);
+
+
+                                    Log.d(TAG, "check: 1 " + view_str_ar);
+                                    Log.d(TAG, "check: 2 " + String.valueOf(view_count_ar));
+                                    //progressBar.setVisibility(View.VISIBLE);
+
+                                }
+
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                }
+                            });
+
+                        }
+                        else if (dataSnapshot.child("Who's Hot").hasChild(song_name_ar)){
+                            file_place_ar = "Who's Hot";
+                            Log.d(TAG, "onDataChange3: "+file_place_ar);
+                            databaseReference_songs.child(file_place_ar).child(song_name_ar).addValueEventListener(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                                    view_str_ar = dataSnapshot.child("views").getValue(String.class);
+                                    view_count_ar = Integer.valueOf(view_str_ar);
+                                    imgurl_ar = dataSnapshot.child("imageurl").getValue(String.class);
+                                    //file_place = dataSnapshot.child("fileplace").getValue(String.class);
+
+
+                                    Log.d(TAG, "check: 1 " + view_str_ar);
+                                    Log.d(TAG, "check: 2 " + String.valueOf(view_count_ar));
+                                    //progressBar.setVisibility(View.VISIBLE);
+
+                                }
+
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                }
+                            });
+
+                        }
+                        Log.d(TAG, "onDataChange5: "+file_place_ar);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });//take if statement
+                Log.d(TAG, "onDataChange4: file place "+file_place_ar);
+
+                if (song_name_ar != null){
+                    databaseReference_artist.addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                            artist_view_str_ar = dataSnapshot.child("artist").child(artist_name_str).child("view_count").getValue(String.class);
+                            Log.d(TAG, "onDataChange: artist 2 "+artist_view_str_ar);
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
+                    databaseReference_artist_song.addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            song_artist_view_ar = dataSnapshot.child(artist_name_str).child(song_name_ar).child("views").getValue(String.class);
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
+                }
+                storageReference.child("audio").child(song_name_ar).getDownloadUrl().addOnSuccessListener(
+                        new OnSuccessListener<Uri>() {
+                            @Override
+                            public void onSuccess(Uri uri) {
+                                musicLink_ar = uri.toString();
+                                Log.d(TAG, "onSuccess: " + musicLink_ar);
+                                Log.d(TAG, "check: 3 " + String.valueOf(view_count_ar));
+                                view_count_ar = view_count_ar + 1;
+                                Log.d(TAG, "check: 4 " + String.valueOf(view_count_ar));
+                                view_str = String.valueOf(view_count_ar);
+                                Log.d(TAG, "check: 5 view " + view_str_ar);
+                                Log.d(TAG, "onSuccess: file_place "+file_place_ar);
+                                Log.d(TAG, "onSuccess: song_name " +song_name_ar);
+                                databaseReference_songs.child(file_place_ar).child(song_name_ar).child("views").setValue(view_str_ar);
+                                //Log.d(TAG, "check: 6 "+songList.get(position).getSname());
+                                Log.d(TAG, "check: 6 " + view_str_ar);
+                                intent1.putExtra("view", view_str_ar);
+                                intent1.putExtra("song_url", musicLink_ar);
+                                intent1.putExtra("type",file_place_ar);
+                                intent1.putExtra("music_image_url",imgurl_ar);
+                                intent1.putExtra("file_place",file_place_ar);
+                                startActivity(intent1);
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(getApplicationContext(), "Something went wrong!", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+
+    }
+    public int sCompare(String str1, String str2)
+    {
+        int res = str1.compareTo(str2);
+        if(res > 0) return 1;
+        else return -1;
+    }
     public void liked(View view){
         if (auth.getCurrentUser() != null) {
 
@@ -622,17 +1032,30 @@ public class Music_player extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // super.onBackPressed(); commented this line in order to disable back press
-        if (mediaPlayer.isPlaying()){
-            mediaPlayer.stop();
-        }
-        if (!artist_list.cliked) {
-            Intent intent = new Intent(this, home.class);
+        if (!song_list_pressed && !artist_pressed) {
+            if (mediaPlayer.isPlaying()) {
+                mediaPlayer.stop();
+            }
+            if (!artist_list.cliked) {
+                Intent intent = new Intent(this, home.class);                                     //here artist code change
+                intent.putExtra("return_type", return_type);
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(this, Artist_list.class);
 
-            startActivity(intent);
+                startActivity(intent);
+            }
         }
         else {
-            Intent intent = new Intent(this,Artist_list.class);
-            startActivity(intent);
+            if (song_list_pressed) {
+                song_list_pressed = false;
+                //list_of_songs.setAnimation(animation1);
+                list_of_songs.setVisibility(View.GONE);
+            }
+            else if (artist_pressed){
+                artist_pressed = false;
+                list_of_artist_songs.setVisibility(View.GONE);
+            }
         }
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
@@ -710,22 +1133,56 @@ public class Music_player extends AppCompatActivity {
     }
     public void delete(View view){
         final Intent intent = new Intent(this,home.class);
-        //auth.signOut();
+        mediaPlayer.stop();
+        startActivity(intent);
+        Log.d(TAG, "delete: button pressed!");
+        Log.d(TAG, "delete: song name "+ song_name_str);
+        Log.d(TAG, "delete: artist name "+artist_name_str);
+        storageReference1.child("image").child(imgurl_dlt).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                storageReference.child("audio").child(songurl_dlt).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Toast.makeText(getApplicationContext(), "The Audio song has deleted!", Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, "onSuccess: deleted from storage");
+
+                    }
+                });
+            }
+        });
         databaseReference_edit.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.child("audio").child("All Music").hasChild(song_name_str)){
-                    databaseReference_edit.child("audio").child("All Music").child(song_name_str).removeValue();
+                Log.d(TAG, "onDataChange: delete entered!");
+                if (dataSnapshot.child("All Music").hasChild(song_name_str)){
+                    databaseReference_edit.child("All Music").child(song_name_str).removeValue();
+                    Log.d(TAG, "delete: delete from all music");
+                }
+                if (dataSnapshot.child("New Music").hasChild(song_name_str)){
+                    databaseReference_edit.child("New Music").child(song_name_str).removeValue();
+                    Log.d(TAG, "delete: delete from new music");
 
                 }
-                if (dataSnapshot.child("audio").child("New Music").hasChild(song_name_str)){
-                    databaseReference_edit.child("audio").child("New Music").child(song_name_str).removeValue();
+                if (dataSnapshot.child("Who's Hot").hasChild(song_name_str)){
+                    databaseReference_edit.child("Who's Hot").child(song_name_str).removeValue();
+                    Log.d(TAG, "delete: delete from who's hot");
+
                 }
-                if (dataSnapshot.child("audio").child("Who's Hot").hasChild(song_name_str)){
-                    databaseReference_edit.child("audio").child("Who's Hot").child(song_name_str).removeValue();
+                databaseReference_artist.child("artist_songs").child(artist_name_str).child(song_name_str).removeValue();
+                if (song_count_str != null) {
+                    song_count = Integer.valueOf(song_count_str);
+                    song_count = song_count - 1;
+                    Log.d(TAG, "onDataChange: song count "+String.valueOf(song_count));
+                    if (song_count > 0) {
+                        song_count_str = String.valueOf(song_count);
+                        databaseReference_artist.child("artist").child(artist_name_str).child("song_count").setValue(song_count_str);
+                    }
+                    else if (song_count == 0){
+                        databaseReference_artist.child("artist").child(artist_name_str).removeValue();
+                    }
+
                 }
-                databaseReference_artist.child("artist_songs").child(art_nam.getText().toString().trim()).child(song_name_str).removeValue();
-                Toast.makeText(getApplicationContext(),"The Audio song has deleted!",Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -734,11 +1191,84 @@ public class Music_player extends AppCompatActivity {
             }
         });
 
-        storageReference1.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+
+    }
+    Boolean song_list_pressed = false;
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+        int action = MotionEventCompat.getActionMasked(event);
+        switch (action){
+            case (MotionEvent.ACTION_DOWN):
+                if (song_list_pressed){
+                   // list_of_songs.setAnimation(animation1);
+                    song_list_pressed = false;
+                    list_of_songs.setVisibility(View.GONE);
+                }
+                else if (artist_pressed){
+                    artist_pressed = false;
+                    list_of_artist_songs.setVisibility(View.GONE);
+                }
+                return true;
+            case (MotionEvent.ACTION_MOVE) :
+                if (song_list_pressed){
+                   // list_of_songs.setAnimation(animation1);
+                    song_list_pressed = false;
+                    list_of_songs.setVisibility(View.GONE);
+                }
+                else if (artist_pressed){
+                    artist_pressed = false;
+                    list_of_artist_songs.setVisibility(View.GONE);
+                }
+                return true;
+            case (MotionEvent.ACTION_UP) :
+                if (song_list_pressed){
+                   // list_of_songs.setAnimation(animation1);
+                    song_list_pressed = false;
+                    list_of_songs.setVisibility(View.GONE);
+                }
+                else if (artist_pressed){
+                    artist_pressed = false;
+                    list_of_artist_songs.setVisibility(View.GONE);
+                }
+                return true;
+            default:
+                return super.onTouchEvent(event);
+        }
+    }
+
+    public void songlist(View view){
+        song_list_pressed = true;
+        list_of_songs.setVisibility(View.VISIBLE);
+        list_of_songs.setAnimation(animation2);
+    }
+    public void artistlist(View view){
+        artist_pressed = true;
+        list_of_artist_songs.setVisibility(View.VISIBLE);
+        list_of_artist_songs.setAnimation(animation2);
+        databaseReference_artist.child("artist_songs").child(art_nam.getText().toString().trim()).addValueEventListener(new ValueEventListener() {
             @Override
-            public void onSuccess(Void aVoid) {
-                Toast.makeText(getApplicationContext(),"deactivated!",Toast.LENGTH_SHORT).show();
-                startActivity(intent);
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                listView_artist_songs.setAdapter(null);
+                artist_song_list.clear();
+                Log.d(TAG, "onDataChange artist name: done!");
+                for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                    Song song = ds.getValue(Song.class);
+                    artist_song_list.add(song);
+                }
+                Collections.sort(artist_song_list, new Comparator<Song>() {
+                    public int compare(Song s1, Song s2) {
+                        int res =  sCompare(s1.sname,s2.sname);
+                        return res;
+                    }
+                });
+                Listadapter listadapter = new Listadapter(Music_player.this, artist_song_list);
+                listView_artist_songs.setAdapter(listadapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
             }
         });
     }

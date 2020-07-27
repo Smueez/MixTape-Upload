@@ -1,6 +1,7 @@
 package com.example.user.mixtapeupload;
 
 import android.app.ProgressDialog;
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -23,12 +24,14 @@ import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.internal.Objects;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
@@ -51,15 +54,15 @@ import java.util.Date;
 public class Upload extends AppCompatActivity implements View.OnClickListener  {
     private static final int SELECT_AUDIO = 2;
     private static final int PERMISSION_REQUEST_CODE = 1,result_loead_image=1,PICK_VIDEO_REQUEST=3;
-
+    int total_selected_item = 1;
     private Button buttonChoose;
     private Button buttonUpload,backbttn;
     int secs, mins;
-    String songurl,artist,name;
+    String songurl,artist,name,text_name;
     CheckBox whoshot, newmusic,allmusic;
 
     //a Uri object to store file path
-    private Uri filePath,imagepath;
+    Uri filePath[],imagepath;
     DatabaseReference databaseReference,databaseReference1,databaseReference_artist,databaseReference_artist_song;
     private StorageReference storageReference ,storageReference_img;
     TextView song_name,art_name,time_dur;
@@ -68,8 +71,11 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
     String strDate;
     long st1,st2,st3;
     ImageView music_icon;
-    String ext_img,imageurl;
-    int song_count;
+    String ext_img,imageurl,like_count_str,view_count_str;
+    //int like_count,view_count;
+    long song_count = 0;
+    String song_count_str,image_url_artis;
+    EditText song_edit_name;
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +84,8 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         date = new Date();
         //radioGroup = findViewById(R.id.typegrp);
         //String d = date.
+        filePath = new Uri[9999];
+        song_edit_name = findViewById(R.id.editText2);
         buttonChoose = (Button) findViewById(R.id.buttonChoose);
         buttonUpload = (Button) findViewById(R.id.buttonUpload);
         backbttn = findViewById(R.id.button4);
@@ -110,7 +118,7 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
             {
                 // Code for above or equal 23 API Oriented Device
                 // Your Permission granted already .Do next code
-                Toast.makeText(getApplicationContext(),"check permission ok",Toast.LENGTH_SHORT).show();
+               // Toast.makeText(getApplicationContext(),"check permission ok",Toast.LENGTH_SHORT).show();
             } else {
                 requestPermission(); // Code for permission
 
@@ -129,6 +137,31 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         newmusic = findViewById(R.id.checkBox2);
         allmusic = findViewById(R.id.checkBox3);
 
+    }
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (total_selected_item > 1){
+            song_edit_name.setVisibility(View.GONE);
+        }
+        if (artist != null) {
+
+            databaseReference_artist_song.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.hasChild(artist)){
+                        song_count = (int) dataSnapshot.child(artist).getChildrenCount();
+                        song_count = song_count +total_selected_item;
+                    }
+
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+        }
     }
     public void addListenerOnButton1(View view) {
 
@@ -185,12 +218,15 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         Intent intent = new Intent();
         intent.setType("audio/*");
        // intent.setType("video/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent, SELECT_AUDIO);
     }
     private void showFileChooser_video(){
+        Log.d(TAG, "showFileChooser_video: selected a vid");
         Intent intent = new Intent();
         intent.setType("video/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent,PICK_VIDEO_REQUEST);
     }
@@ -227,175 +263,191 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
         return result;
     }
     //for file uploading
+
     private void uploadFile() {
-        //if there is a file to upload
-        Log.d(String.valueOf(1), "uploadFile: "+filePath.toString());
-        if (filePath != null && st1 != 0 && st2 != 0 && st3 != 0) {
-            //displaying a progress dialog while upload is going on
-            String ext = getFileExtention(filePath);
-            if (imagepath != null) {
-                ext_img = getFileExtention(imagepath);
+        Log.d(TAG, "uploadFile: "+String.valueOf(total_selected_item));
+        for (int i = 0 ; i < total_selected_item ; i++) {
+            //if there is a file to upload
+            try {
+                Log.d(String.valueOf(1), "uploadFile: " + filePath[i].toString());
+            } catch (Exception e){
+                e.printStackTrace();
             }
-            Log.d("ext", "uploadFile: ext"+ext);
-            Log.d(String.valueOf(1), "uploadFile: " + filePath.toString());
-            if(ext == "mp3" || ext == "aac" || ext == "mp4" || ext == "wma" || ext == "3gp" )
-            {
-                final ProgressDialog progressDialog = new ProgressDialog(this);
-                progressDialog.setTitle("Uploading");
-                progressDialog.show();
-                //String path = filePath.getPath().toString();
-                MediaMetadataRetriever md = new MediaMetadataRetriever();
-                md.setDataSource(this, filePath);
-                artist = md.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-                artist = art_name.getText().toString().trim();
-
-                if(artist == null || artist.equals(""))
-                {
-                    artist = "Unknown";
+            if (filePath[i] != null && st1 != 0 && st2 != 0 && st3 != 0) {
+                //displaying a progress dialog while upload is going on
+                String ext = getFileExtention(filePath[i]);
+                if (imagepath != null) {
+                    ext_img = getFileExtention(imagepath);
                 }
-                name  = md.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                if (name == null || name.equals("")){
-                    name = getFileName(filePath);
-                    //String path = getRealPathFromURI(uri);
+                Log.d("ext", "uploadFile: ext " + ext);
+                Log.d(String.valueOf(1), "uploadFile: " + filePath.toString());
+                if (ext == "mp3" || ext == "aac" || ext == "mp4" || ext == "wma" || ext == "3gp" || ext == "3gpp" || ext == "mkv") {
+                    final ProgressDialog progressDialog = new ProgressDialog(this);
+                    progressDialog.setTitle("Uploading");
+                    progressDialog.show();
+                    //String path = filePath.getPath().toString();
 
-                    while (name.indexOf(".") > 0) {
-                        name = name.substring(0, name.lastIndexOf("."));
+                    MediaMetadataRetriever md = new MediaMetadataRetriever();
+                    try {
+                        md.setDataSource(this, filePath[i]);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(getApplicationContext(), "Something went wrong!", Toast.LENGTH_SHORT).show();
                     }
-                    if(name.indexOf(".")>0 || name.indexOf("[")> 0|| name.indexOf("]") >0 || name.indexOf("#") >0 || name.indexOf("$") >0 )
-                    {
-                        Toast.makeText(getApplicationContext(),"Song name can not contain '.', '[' , ']', '#' , '$'",Toast.LENGTH_LONG).show();
+
+                    artist = md.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                    artist = art_name.getText().toString().trim();
+
+                    if (artist == null || artist.equals("")) {
+                        artist = "Unknown";
+                    }
+                    if (total_selected_item > 1 || song_edit_name == null) {
+                        name = md.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+
+
+                        Log.d(TAG, "uploadFile: name " + name);
+                        if (name == null || name.equals("")) {
+                            name = getFileName(filePath[i]);
+                            //String path = getRealPathFromURI(uri);
+                            Log.d(TAG, "uploadFile: name " + name);
+                            while (name.indexOf(".") > 0) {
+                                name = name.substring(0, name.lastIndexOf("."));
+                            }
+                            if (name.indexOf(".") > 0 || name.indexOf("[") > 0 || name.indexOf("]") > 0 || name.indexOf("#") > 0 || name.indexOf("$") > 0) {
+                                Toast.makeText(getApplicationContext(), "Song name can not contain '.', '[' , ']', '#' , '$'", Toast.LENGTH_LONG).show();
+                                progressDialog.dismiss();
+                                return;
+                            }
+                        }
+                    }
+                    else if (total_selected_item == 1 && song_edit_name != null){
+                        name = song_edit_name.getText().toString().trim();
+                        if (name.indexOf(".") > 0 || name.indexOf("[") > 0 || name.indexOf("]") > 0 || name.indexOf("#") > 0 || name.indexOf("$") > 0) {
+                            Toast.makeText(getApplicationContext(), "Song name can not contain '.', '[' , ']', '#' , '$'", Toast.LENGTH_LONG).show();
+                            progressDialog.dismiss();
+                            return;
+                        }
+                    }
+                    if (name.indexOf(".") > 0 || name.indexOf("[") > 0 || name.indexOf("]") > 0 || name.indexOf("#") > 0 || name.indexOf("$") > 0) {
+                        Toast.makeText(getApplicationContext(), "Song name can not contain '.', '[' , ']', '#' , '$'", Toast.LENGTH_LONG).show();
                         progressDialog.dismiss();
                         return;
                     }
-                }
-                if(name.indexOf(".")>0 || name.indexOf("[")> 0|| name.indexOf("]") >0 || name.indexOf("#") >0 || name.indexOf("$") >0 )
-                {
-                    Toast.makeText(getApplicationContext(),"Song name can not contain '.', '[' , ']', '#' , '$'",Toast.LENGTH_LONG).show();
-                    progressDialog.dismiss();
-                    return;
-                }
-                secs = Integer.parseInt(md.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)) / 1000;
-                mins= secs / 60;
-                secs =  secs % 60;
+                    secs = Integer.parseInt(md.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)) / 1000;
+                    mins = secs / 60;
+                    secs = secs % 60;
 
-                StorageReference riversRef = storageReference.child(type_str).child(name);
-                riversRef.putFile(filePath)
-                        .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    StorageReference riversRef = storageReference.child(type_str).child(name);
+                    riversRef.putFile(filePath[i])
+                            .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                                @Override
+                                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                                    //if the upload is successfull
+                                    //hiding the progress dialog
+                                    progressDialog.dismiss();
+
+                                    //and displaying a success toast
+                                    Toast.makeText(getApplicationContext(), "File Uploaded ", Toast.LENGTH_LONG).show();
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception exception) {
+                                    //if the upload is not successfull
+                                    //hiding the progress dialog
+                                    progressDialog.dismiss();
+
+                                    //and displaying error message
+                                    Toast.makeText(getApplicationContext(), exception.getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            })
+                            .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                                @Override
+                                public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                                    //calculating progress percentage
+                                    double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+
+                                    //displaying percentage in progress dialog
+                                    progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
+                                }
+                            });
+
+                    if (imagepath != null) {
+                        Log.d(TAG, "uploadFile: " + imagepath.toString().trim());
+                        StorageReference Sref = storageReference_img.child("image").child(name);
+                        Sref.putFile(imagepath).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                             @Override
                             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                                //if the upload is successfull
-                                //hiding the progress dialog
-                                progressDialog.dismiss();
-
-                                //and displaying a success toast
-                                Toast.makeText(getApplicationContext(), "File Uploaded ", Toast.LENGTH_LONG).show();
+                                Log.d(TAG, "onSuccess: image upload done!");
                             }
-                        })
-                        .addOnFailureListener(new OnFailureListener() {
+                        }).addOnFailureListener(new OnFailureListener() {
                             @Override
-                            public void onFailure(@NonNull Exception exception) {
-                                //if the upload is not successfull
-                                //hiding the progress dialog
-                                progressDialog.dismiss();
-
-                                //and displaying error message
-                                Toast.makeText(getApplicationContext(), exception.getMessage(), Toast.LENGTH_LONG).show();
-                            }
-                        })
-                        .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                            @Override
-                            public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                                //calculating progress percentage
-                                double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-
-                                //displaying percentage in progress dialog
-                                progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
+                            public void onFailure(@NonNull Exception e) {
+                                Toast.makeText(getApplicationContext(), "image upload failed!", Toast.LENGTH_SHORT).show();
                             }
                         });
-
-                if (imagepath != null) {
-                    Log.d(TAG, "uploadFile: "+imagepath.toString().trim());
-                    StorageReference Sref = storageReference_img.child("image").child(name);
-                    Sref.putFile(imagepath).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                        @Override
-                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                            Log.d(TAG, "onSuccess: image upload done!");
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Toast.makeText(getApplicationContext(), "image upload failed!", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                    imageurl = "image" + "/"+ name + "." + ext_img;
-                }
-                else {
-                    imageurl = "empty";
-                }
-                songurl = name+"."+ext;
-                uploaddata(secs,mins,songurl,imageurl,artist,name,st1,st2,st3);
-                song_name.setText(name);
-                art_name.setText(artist);
-                time_dur.setText("Duration: "+mins+"min(s) : "+secs+"sec(s)");
-
-            }
-            else
-            {
-                Toast.makeText(getApplicationContext(),"No file selected",Toast.LENGTH_SHORT).show();
-            }
-
-        }
-        else
-        {
-            Toast.makeText(getApplicationContext(),"No file selected",Toast.LENGTH_SHORT).show();
-        }
-
-    }
-    //handling the image chooser activity result
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == SELECT_AUDIO && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            filePath = data.getData();
-            Log.d(TAG, "onActivityResult: Music loading!");
-            Log.d(TAG, "onActivityResult: "+filePath.toString());
-        }
-        else if (requestCode == PICK_VIDEO_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            filePath = data.getData();
-            Log.d(TAG, "onActivityResult: Video loading!");
-        }
-        if (requestCode == result_loead_image && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            imagepath = data.getData();
-            music_icon.setImageURI(imagepath);
-            Log.d(TAG, "onActivityResult: Pic is loading!");
-
-        }
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (artist != null) {
-           /* databaseReference_artist.addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    if (dataSnapshot.hasChild(artist)){
-                        song_count = dataSnapshot.child(artist).child("song_count").getValue(Integer.class);
-                        song_count = song_count +1;
+                        imageurl = name ;
+                    } else {
+                        imageurl = "empty";
                     }
+
+
+
+                    songurl = name + "." + ext;
+                    if (text_name != null) {
+                        name = text_name;
+                    }
+                    uploaddata(secs, mins, songurl, imageurl, artist, name, st1, st2, st3);
+                    song_name.setText(name);
+
+                    art_name.setText(artist);
+                    time_dur.setText("Duration: " + mins + "min(s) : " + secs + "sec(s)");
+
+                } else {
+                    Toast.makeText(getApplicationContext(), "File not supported!", Toast.LENGTH_SHORT).show();
                 }
 
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                }
-            });*/
-            databaseReference_artist_song.addValueEventListener(new ValueEventListener() {
+            } else {
+                Toast.makeText(getApplicationContext(), "No file selected", Toast.LENGTH_SHORT).show();
+            }
+        }
+        if (type_str == "audio"){
+            Log.d(TAG, "uploadFile: image url "+imageurl);
+            Log.d(TAG, "uploadFile: song count bifore featch! "+song_count);
+            databaseReference_artist.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    if (dataSnapshot.hasChild(artist)){
-                        song_count = (int) dataSnapshot.child(artist).getChildrenCount();
-                        song_count = song_count +1;
+                    if (!dataSnapshot.hasChild(artist)) {
+                        Log.d(TAG, "onDataChange: new artist creating");
+                        song_count_str = String.valueOf(total_selected_item);
+                        view_count_str = "0";
+                        like_count_str = "0";
+                        image_url_artis = imageurl;
+
+                        Artist_class artist_class = new Artist_class(artist, image_url_artis, song_count_str, like_count_str, view_count_str);
+                        databaseReference_artist.child(artist).setValue(artist_class);
+
+                    } else {
+                        Log.d(TAG, "onDataChange: adtist exist");
+                        databaseReference_artist_song.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot1) {
+
+                                song_count = (int) dataSnapshot1.child(artist).getChildrenCount();
+                                Log.d(TAG, "onDataChange: song count before " + song_count +" + "+total_selected_item);
+                                //song_count = song_count + total_selected_item ;
+                                Log.d(TAG, "onDataChange: song count0 " + song_count);
+                                song_count_str = String.valueOf(song_count);
+                                databaseReference_artist.child(artist).child("song_count").setValue(song_count_str);
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
+                        Log.d(TAG, "onDataChange: song count1 " + song_count);
+
                     }
 
                 }
@@ -406,47 +458,83 @@ public class Upload extends AppCompatActivity implements View.OnClickListener  {
                 }
             });
         }
+
     }
+    //handling the image chooser activity result
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == SELECT_AUDIO && resultCode == RESULT_OK && data != null) {
+            if (data.getData() != null) {
+                filePath[0] = data.getData();
+                Log.d(TAG, "onActivityResult: Music loading!");
+                Log.d(TAG, "onActivityResult: " + filePath.toString());
+            }
+            else if (data.getClipData() != null){
+                ClipData clipData = data.getClipData();
+                 total_selected_item = clipData.getItemCount();
+
+                 Toast.makeText(getApplicationContext(),"Total "+ String.valueOf(total_selected_item)+" items selected!",Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "onActivityResult:  "+ String.valueOf(total_selected_item));
+                for (int i = 0 ; i < total_selected_item; i++){
+                    filePath[i] = data.getClipData().getItemAt(i).getUri();
+                }
+            }
+        }
+        else if (requestCode == PICK_VIDEO_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            filePath[0] = data.getData();
+            Log.d(TAG, "onActivityResult: Video loading!");
+            Log.d(TAG, "onActivityResult: file path "+filePath[0]);
+        }
+        if (requestCode == result_loead_image && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            imagepath = data.getData();
+            music_icon.setImageURI(imagepath);
+            Log.d(TAG, "onActivityResult: Pic is loading!");
+        }
+    }
+
+
 
     public void uploaddata(Integer s, Integer m, String surl, String iurl, String ar, String nm, long dd, long mm , long yy){
         String sec,min;
         sec = s.toString();
         min = m.toString();
-        if (whoshot.isChecked()){
-            Artist_class artist_class = new Artist_class(ar,iurl,song_count);
-            databaseReference_artist.child(ar).setValue(artist_class);
+        Log.d(TAG, "uploaddata: song name: "+nm);
+        Log.d(TAG, "uploaddata: artist name: "+ar);
+        Log.d(TAG, "uploaddata: song url: "+surl);
+        Log.d(TAG, "uploaddata: song image url: "+iurl);
+        if (type_str == "audio") {
+            if (whoshot.isChecked()) {
 
-            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy,"Who's Hot");
-            databaseReference.child("Who's Hot").child(nm).setValue(song);
-            databaseReference_artist_song.child(ar).child(nm).setValue(song);
+                Song song = new Song(sec, min, surl, iurl, ar, "0", "0", nm, dd, mm, yy, "Who's Hot");
+                databaseReference.child("Who's Hot").child(nm).setValue(song);
+                databaseReference_artist_song.child(ar).child(nm).setValue(song);
+            }
+            if (newmusic.isChecked()) {
+
+                Song song = new Song(sec, min, surl, iurl, ar, "0", "0", nm, dd, mm, yy, "New Music");
+                databaseReference.child("New Music").child(nm).setValue(song);
+                databaseReference_artist_song.child(ar).child(nm).setValue(song);
+
+            }
+            if (allmusic.isChecked()) {
+
+
+                Song song = new Song(sec, min, surl, iurl, ar, "0", "0", nm, dd, mm, yy, "All Music");
+                databaseReference.child("All Music").child(nm).setValue(song);
+                databaseReference_artist_song.child(ar).child(nm).setValue(song);
+
+            }
+            if (!whoshot.isChecked() && !newmusic.isChecked() && !allmusic.isChecked()) {
+                Toast.makeText(getApplicationContext(), "Select where to put your music!", Toast.LENGTH_SHORT).show();
+            }
         }
-        if (newmusic.isChecked()){
-
-            Artist_class artist_class = new Artist_class(ar,iurl,song_count);
-            databaseReference_artist.child(ar).setValue(artist_class);
-
-            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy,"New Music");
-            databaseReference.child("New Music").child(nm).setValue(song);
-            databaseReference_artist_song.child(ar).child(nm).setValue(song);
-
-        }
-        if (allmusic.isChecked()){
-
-            Artist_class artist_class = new Artist_class(ar,iurl,song_count);
-            databaseReference_artist.child(ar).setValue(artist_class);
-
-            Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy,"All Music");
-            databaseReference.child("All Music").child(nm).setValue(song);
-            databaseReference_artist_song.child(ar).child(nm).setValue(song);
-
-        }
-        if (!whoshot.isChecked() && !newmusic.isChecked() && !allmusic.isChecked()){
-            Toast.makeText(getApplicationContext(),"Select where to put your music!",Toast.LENGTH_SHORT).show();
+        else if (type_str == "video"){
+            Song song = new Song(sec, min, surl, iurl, ar, "0", "0", nm, dd, mm, yy, "Who's Hot");
+            databaseReference.child(nm).setValue(song);
         }
 
-       /* Song song = new Song(sec,min,surl,iurl,ar,"0","0",nm,dd,mm,yy);
-        databaseReference.child(nm).setValue(song);*/
-       databaseReference_artist.child(ar).child("img_url").setValue(iurl);
+
     }
     @Override
     public void onClick(View view) {

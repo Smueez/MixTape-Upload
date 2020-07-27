@@ -50,6 +50,7 @@ public class VideoList extends AppCompatActivity {
     Button hot_bttn,new_bttn,topViewbttn,all_bttn;
     //GridView gridView;
     String file_type = "video",muser_str,admin;
+    int position_item = -1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -116,6 +117,12 @@ public class VideoList extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // clicked item
+                if (position_item == -1){
+                    position_item = position;
+                }
+                else {
+                    return;
+                }
                 song_name = songList.get(position).getSname();
                 intent.putExtra("song_name", song_name);
                 Log.d(TAG, "onItemClick: position" + songList.get(position).toString());

@@ -83,7 +83,7 @@ public class Artist_lis_adapter extends ArrayAdapter<Artist_class> {
         LayoutInflater inflater = context.getLayoutInflater();
         View mylistview = inflater.inflate(R.layout.artist_adapter,null,true);
 
-        StorageReference storageReference1 = FirebaseStorage.getInstance().getReference().child("image");
+        StorageReference storageReference1 = FirebaseStorage.getInstance().getReference();
         TextView artistnm = mylistview.findViewById(R.id.textView);
 
         TextView likes_count = mylistview.findViewById(R.id.textView21);
@@ -96,12 +96,12 @@ public class Artist_lis_adapter extends ArrayAdapter<Artist_class> {
 
         artistnm.setText(song1.getArtist_name());
         likes_count.setText(song1.getTotal_likes());
-        song_count.setText(String.valueOf(song1.getSong_count()));
+        song_count.setText(song1.getSong_count());
         view_count.setText(song1.getView_count());
         list_img = song1.getImg_url();
 
         if (list_img != "empty"){
-            storageReference1.child(list_img).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+            storageReference1.child("image").child(song1.getImg_url()).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                 @Override
                 public void onSuccess(Uri uri) {
                     Log.d(TAG, "onSuccess: got url of image!");

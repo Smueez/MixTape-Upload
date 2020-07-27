@@ -56,6 +56,7 @@ public class Artist_list extends AppCompatActivity {
         gridview_layout = findViewById(R.id.artist_list);
 
         intent_artist_song = new Intent(this,Artist_songs.class);
+
     }
     public int sCompare(String str1, String str2)
     {
@@ -63,6 +64,7 @@ public class Artist_list extends AppCompatActivity {
         if(res > 0) return 1;
         else return -1;
     }
+    int position_item = -1;
     @Override
     protected void onStart() {
         super.onStart();
@@ -96,6 +98,12 @@ public class Artist_list extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // clicked item
+                if (position_item == -1){
+                    position_item = position;
+                }
+                else {
+                    return;
+                }
                 cliked = true;
                 artist_name = songList.get(position).getArtist_name();
                 //intent.putExtra("song_name", artist_name);
